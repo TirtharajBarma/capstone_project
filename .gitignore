@@ -1,0 +1,97 @@
+# ======================================
+# Node.js (Backend + Frontend common)
+# ======================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ======================================
+# Build output
+# ======================================
+dist/
+build/
+.temp/
+.cache/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# ======================================
+# Logs
+# ======================================
+logs
+*.log
+log.txt
+debug.log
+error.log
+
+# ======================================
+# Environment variables
+# ======================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ======================================
+# System Files
+# ======================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ======================================
+# OS + Editor Specific
+# ======================================
+*.iml
+*.sublime-workspace
+*.sublime-project
+
+# ======================================
+# Frontend (React)
+# ======================================
+client/node_modules/
+client/build/
+client/.env
+client/.eslintcache
+client/.parcel-cache/
+client/coverage/
+client/.next/
+client/out/
+
+# ======================================
+# Backend (Express / Node)
+# ======================================
+server/node_modules/
+server/.env
+server/uploads/
+server/logs/
+server/coverage/
+
+# ======================================
+# Database / Temp Files
+# ======================================
+data/
+tmp/
+*.sqlite
+*.db
+*.bak
+
+# ======================================
+# Optional - Ignore local config files
+# ======================================
+*.local.json
+*.local.yml
+*.local.yaml
+PRD.txt 
+
