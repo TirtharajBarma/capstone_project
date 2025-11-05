@@ -216,4 +216,80 @@ export const handleAPIError = (error) => {
   }
 };
 
+// User API - Clerk Integration
+export const userAPI = {
+  // Sync user data from Clerk to MongoDB
+  syncUser: async (clerkUserData) => {
+    try {
+      const response = await api.post('/users/sync', clerkUserData);
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('User sync error:', error);
+      throw error;
+    }
+  },
+
+  // Get user profile by Clerk ID
+  getProfile: async (clerkId) => {
+    try {
+      const response = await api.get(`/users/profile/${clerkId}`);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error) {
+      console.error('Get user profile error:', error);
+      throw error;
+    }
+  },
+
+  // Update user preferences
+  updatePreferences: async (clerkId, preferences) => {
+    try {
+      const response = await api.put(`/users/preferences/${clerkId}`, { preferences });
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('Update preferences error:', error);
+      throw error;
+    }
+  },
+
+  // Get user statistics
+  getStats: async (clerkId) => {
+    try {
+      const response = await api.get(`/users/stats/${clerkId}`);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      throw error;
+    }
+  },
+
+  // Increment prediction count
+  incrementPredictionCount: async (clerkId) => {
+    try {
+      const response = await api.post(`/users/increment-prediction/${clerkId}`);
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('Increment prediction count error:', error);
+      throw error;
+    }
+  },
+};
+
 export default api;

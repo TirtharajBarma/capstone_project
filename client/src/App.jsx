@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import Navigation from './components/layout/Navigation';
 import Dashboard from './components/layout/Dashboard';
 import ResultsPanel from './components/layout/ResultsPanel';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import { predictionAPI, breedsAPI, utils, handleAPIError } from './services/api';
+import { useUserSync } from './hooks/useUserSync';
 import './App.css';
 
 function App() {
@@ -12,6 +16,9 @@ function App() {
   const [breedInfo, setBreedInfo] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState(null);
+
+  // User synchronization hook
+  const { user, dbUser, incrementPredictionCount, isSignedIn } = useUserSync();
 
   const handleImageUpload = async (file) => {
     try {
@@ -32,6 +39,11 @@ function App() {
       
       if (response.success) {
         setPrediction(response.data);
+        
+        // Increment user's prediction count if signed in
+        if (isSignedIn && user) {
+          incrementPredictionCount();
+        }
         
         // Get breed information if available
         if (response.data.breed) {
@@ -169,51 +181,51 @@ function App() {
               } 
             />
             
+            {/* Protected Routes - require authentication */}
             <Route 
               path="/history" 
               element={
-                <div className="max-w-7xl mx-auto px-4 py-12">
-                  <div className="card p-12 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">History</h2>
-                    <p className="text-gray-600">Coming soon - View your prediction history</p>
+                <SignedIn>
+                  <div className="max-w-7xl mx-auto px-4 py-12">
+                    <div className="card p-12 text-center">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">History</h2>
+                      <p className="text-gray-600">Coming soon - View your prediction history</p>
+                    </div>
                   </div>
-                </div>
+                </SignedIn>
               } 
             />
             
             <Route 
               path="/analytics" 
               element={
-                <div className="max-w-7xl mx-auto px-4 py-12">
-                  <div className="card p-12 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Analytics</h2>
-                    <p className="text-gray-600">Coming soon - View statistics and insights</p>
+                <SignedIn>
+                  <div className="max-w-7xl mx-auto px-4 py-12">
+                    <div className="card p-12 text-center">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">Analytics</h2>
+                      <p className="text-gray-600">Coming soon - View statistics and insights</p>
+                    </div>
                   </div>
-                </div>
+                </SignedIn>
               } 
             />
             
+            {/* Authentication Routes */}
             <Route 
               path="/login" 
               element={
-                <div className="max-w-md mx-auto px-4 py-12">
-                  <div className="card p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Login</h2>
-                    <p className="text-gray-600">Authentication coming soon</p>
-                  </div>
-                </div>
+                <SignedOut>
+                  <LoginPage />
+                </SignedOut>
               } 
             />
             
             <Route 
-              path="/signup" 
+              path="/register" 
               element={
-                <div className="max-w-md mx-auto px-4 py-12">
-                  <div className="card p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Sign Up</h2>
-                    <p className="text-gray-600">Registration coming soon</p>
-                  </div>
-                </div>
+                <SignedOut>
+                  <RegisterPage />
+                </SignedOut>
               } 
             />
           </Routes>

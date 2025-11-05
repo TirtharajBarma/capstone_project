@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Camera, Home, History, BarChart3, LogIn, UserPlus, Menu, X } from 'lucide-react';
+import { Camera, Home, History, BarChart3, Menu, X } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
 
 const Navigation = () => {
   const location = useLocation();
@@ -52,20 +53,29 @@ const Navigation = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-3">
-            <Link
-              to="/login"
-              className="flex items-center space-x-2 text-gray-700 transition duration-200 px-3 py-2 text-sm font-medium"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Login</span>
-            </Link>
-            <Link
-              to="/signup"
-              className="btn-primary text-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Sign Up</span>
-            </Link>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="flex items-center space-x-2 text-gray-700 transition duration-200 px-3 py-2 text-sm font-medium hover:text-indigo-600">
+                  <span>Login</span>
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="btn-primary text-sm">
+                  <span>Sign Up</span>
+                </button>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton 
+                appearance={{
+                  elements: {
+                    avatarBox: "w-10 h-10",
+                    userButtonPopoverCard: "shadow-2xl",
+                    userButtonPopoverActions: "bg-white"
+                  }
+                }}
+              />
+            </SignedIn>
           </div>
 
           {/* Mobile menu button */}
@@ -106,22 +116,30 @@ const Navigation = () => {
               })}
               
               <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
-                <Link
-                  to="/login"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all duration-200 transform hover:scale-105"
-                >
-                  <LogIn className="w-5 h-5" />
-                  <span className="font-medium">Login</span>
-                </Link>
-                <Link
-                  to="/signup"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 active:bg-gray-700 shadow-md transition-all duration-200 transform hover:scale-105"
-                >
-                  <UserPlus className="w-5 h-5" />
-                  <span className="font-medium">Sign Up</span>
-                </Link>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all duration-200 transform hover:scale-105 w-full text-left">
+                      <span className="font-medium">Login</span>
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="flex items-center space-x-3 px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 active:bg-gray-700 shadow-md transition-all duration-200 transform hover:scale-105 w-full text-left">
+                      <span className="font-medium">Sign Up</span>
+                    </button>
+                  </SignUpButton>
+                </SignedOut>
+                <SignedIn>
+                  <div className="flex items-center space-x-3 px-4 py-3">
+                    <UserButton 
+                      appearance={{
+                        elements: {
+                          avatarBox: "w-8 h-8"
+                        }
+                      }}
+                    />
+                    <span className="font-medium text-gray-700">My Account</span>
+                  </div>
+                </SignedIn>
               </div>
             </div>
           </div>

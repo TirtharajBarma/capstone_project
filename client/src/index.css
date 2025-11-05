@@ -49,6 +49,30 @@
   #root {
     min-height: 100vh;
   }
+
+  /* Clerk Modal Styling - Fix Overlapping Issues */
+  .cl-modalBackdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px) !important;
+    z-index: 9999 !important;
+  }
+  
+  .cl-modal {
+    z-index: 10000 !important;
+  }
+  
+  .cl-modalContent {
+    border-radius: 12px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    max-width: 400px !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+
+  /* Ensure modals appear above everything */
+  [data-clerk-modal] {
+    z-index: 9999 !important;
+  }
 }
 
 @layer components {
