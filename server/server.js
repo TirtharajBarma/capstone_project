@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './src/config/database.js';
-import { predictionRoutes, breedRoutes, historyRoutes } from './src/routes/index.js';
+import { predictionRoutes, breedRoutes, historyRoutes, userRoutes, webhookRoutes } from './src/routes/index.js';
 import { notFound, errorHandler } from './src/middleware/errorHandler.js';
 
 // Load environment variables
@@ -48,6 +48,8 @@ app.get('/health', (req, res) => {
 app.use('/api/predict', predictionRoutes);
 app.use('/api/breeds', breedRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
