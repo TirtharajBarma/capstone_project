@@ -1,0 +1,17 @@
+# Server Configuration
+PORT=5002
+NODE_ENV=
+
+# MongoDB Atlas Configuration
+MONGODB_URI=""
+
+# ML Model API Configuration
+MODEL_API_URL=
+MODEL_API_TIMEOUT=30000
+
+# Upload Configuration
+MAX_FILE_SIZE=5242880
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/jpg
+
+# CORS Configuration
+FRONTEND_URL=
