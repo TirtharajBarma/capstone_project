@@ -40,7 +40,7 @@ api.interceptors.response.use(
 // Prediction API
 export const predictionAPI = {
   // Upload image for breed prediction
-  predict: async (imageFile, onProgress) => {
+  predict: async (imageFile, onProgress, clerkId) => {
     const formData = new FormData();
     formData.append('image', imageFile);
 
@@ -49,6 +49,10 @@ export const predictionAPI = {
         'Content-Type': 'multipart/form-data',
       },
     };
+
+    if (clerkId) {
+      config.headers['X-Clerk-Id'] = clerkId;
+    }
 
     if (onProgress) {
       config.onUploadProgress = (progressEvent) => {

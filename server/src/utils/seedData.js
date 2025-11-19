@@ -1,175 +1,235 @@
 import dotenv from 'dotenv';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from '../config/database.js';
 import { Breed } from '../models/index.js';
 
 // Load environment variables
 dotenv.config();
 
-// Sample breed data for Indian cattle and buffalo breeds
-const breedsData = [
-  // Cattle Breeds
-  {
-    name: 'Gir',
-    species: 'cattle',
-    origin: 'Gujarat, India',
-    description: 'The Gir is one of the principal Zebu breeds originating in India. It is one of the most important milk producers and is also known for its disease resistance.',
-    traits: ['High milk production', 'Disease resistant', 'Heat tolerant', 'Docile temperament'],
-    milkYield: { average: 12, unit: 'liters/day' },
-    characteristics: {
-      size: 'medium',
-      color: ['White', 'Red', 'Brown'],
-      horns: 'present'
-    }
-  },
-  {
-    name: 'Holstein Friesian',
-    species: 'cattle',
-    origin: 'Europe (adapted in India)',
-    description: 'Holstein Friesian cattle are a breed of dairy cattle originating from the Dutch provinces. They are known for their high milk production.',
-    traits: ['Very high milk production', 'Large body size', 'Black and white markings'],
-    milkYield: { average: 25, unit: 'liters/day' },
-    characteristics: {
-      size: 'large',
-      color: ['Black', 'White'],
-      horns: 'absent'
-    }
-  },
-  {
-    name: 'Sahiwal',
-    species: 'cattle',
-    origin: 'Punjab, Pakistan/India',
-    description: 'Sahiwal is a breed of Zebu cattle which originated in the Sahiwal district of Punjab. They are excellent milk producers adapted to hot climates.',
-    traits: ['Good milk production', 'Heat tolerant', 'Tick resistant', 'Easy calving'],
-    milkYield: { average: 10, unit: 'liters/day' },
-    characteristics: {
-      size: 'medium',
-      color: ['Light red', 'Reddish brown'],
-      horns: 'present'
-    }
-  },
-  {
-    name: 'Red Sindhi',
-    species: 'cattle',
-    origin: 'Sindh (now Pakistan)',
-    description: 'Red Sindhi is a dairy breed of Zebu cattle. They are heat tolerant and known for their reddish-brown color.',
-    traits: ['Good milk production', 'Heat adaptation', 'Disease resistance'],
-    milkYield: { average: 8, unit: 'liters/day' },
-    characteristics: {
-      size: 'medium',
-      color: ['Red', 'Dark red'],
-      horns: 'present'
-    }
-  },
-  {
-    name: 'Tharparkar',
-    species: 'cattle',
-    origin: 'Rajasthan, India',
-    description: 'Tharparkar is a breed of Zebu cattle from the Thar Desert region. They are dual-purpose cattle known for milk production and drought tolerance.',
-    traits: ['Drought tolerant', 'Dual purpose', 'Hardy breed'],
-    milkYield: { average: 6, unit: 'liters/day' },
-    characteristics: {
-      size: 'medium',
-      color: ['White', 'Light grey'],
-      horns: 'present'
-    }
-  },
-  {
-    name: 'Haryana',
-    species: 'cattle',
-    origin: 'Haryana, India',
-    description: 'Haryana cattle are a breed of Zebu cattle from Haryana state. They are primarily used for draft purposes but also produce milk.',
-    traits: ['Good draught capacity', 'Hardy', 'Disease resistant'],
-    milkYield: { average: 4, unit: 'liters/day' },
-    characteristics: {
-      size: 'large',
-      color: ['White', 'Light grey'],
-      horns: 'present'
-    }
-  },
+// Resolve path to classes.json located at repoRoot/pytorch/classes.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const classesPath = path.resolve(__dirname, '../../../pytorch/classes.json');
 
-  // Buffalo Breeds
-  {
-    name: 'Murrah',
-    species: 'buffalo',
-    origin: 'Haryana, India',
-    description: 'Murrah buffalo is the most famous dairy buffalo breed of India. They are known for their high milk production and quality.',
-    traits: ['Very high milk production', 'Rich milk quality', 'Long lactation period'],
-    milkYield: { average: 15, unit: 'liters/day' },
-    characteristics: {
-      size: 'large',
-      color: ['Black'],
-      horns: 'present'
-    }
+// Known buffalo breeds (use class names exactly as in classes.json)
+const BUFFALO_SET = new Set([
+  'Bhadawari',
+  'Jaffrabadi',
+  'Mehsana',
+  'Murrah',
+  'Nili_Ravi',
+  'Surti',
+  'Nagpuri'
+]);
+
+// Optional origin overrides for better accuracy; defaults to 'India' otherwise
+const ORIGIN_MAP = {
+  Ayrshire: 'Scotland',
+  Guernsey: 'Channel Islands',
+  Brown_Swiss: 'Switzerland',
+  Jersey: 'Channel Islands',
+  Red_Dane: 'Denmark',
+  Holstein_Friesian: 'Netherlands/Germany',
+  Nili_Ravi: 'Punjab (India/Pakistan)',
+  Jaffrabadi: 'Gujarat, India',
+  Murrah: 'Haryana, India',
+  Mehsana: 'Gujarat, India',
+  Surti: 'Gujarat, India',
+  Nagpuri: 'Maharashtra, India',
+  Gir: 'Gujarat, India',
+  Kankrej: 'Gujarat, India',
+  Sahiwal: 'Punjab (India/Pakistan)',
+  Red_Sindhi: 'Sindh (Pakistan)',
+  Tharparkar: 'Rajasthan, India',
+  Hariana: 'Haryana, India'
+};
+
+// Optional detailed overrides for traits and characteristics
+// Note: Keep keys exactly matching classes.json entries
+const OVERRIDES = {
+  Gir: {
+    description: 'Renowned Indian zebu dairy breed known for heat tolerance and disease resistance.',
+    traits: ['Dairy breed', 'Heat tolerant', 'Disease resistant', 'Docile'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
   },
-  {
-    name: 'Jaffarabadi',
-    species: 'buffalo',
-    origin: 'Gujarat, India',
-    description: 'Jaffarabadi is the heaviest buffalo breed of India. They are primarily raised for milk production and are known for their massive size.',
-    traits: ['Large body size', 'Good milk production', 'Strong constitution'],
-    milkYield: { average: 12, unit: 'liters/day' },
-    characteristics: {
-      size: 'large',
-      color: ['Black'],
-      horns: 'present'
-    }
+  Kankrej: {
+    description: 'Dual-purpose Indian breed valued for milk and draught power.',
+    traits: ['Dual-purpose', 'Hardy', 'Heat tolerant'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
   },
-  {
-    name: 'Surti',
-    species: 'buffalo',
-    origin: 'Gujarat, India',
-    description: 'Surti buffalo is a medium-sized buffalo breed known for good milk production. They are well adapted to the climate of Gujarat.',
-    traits: ['Medium milk production', 'Good fertility', 'Heat tolerant'],
-    milkYield: { average: 8, unit: 'liters/day' },
-    characteristics: {
-      size: 'medium',
-      color: ['Black', 'Brown'],
-      horns: 'present'
-    }
+  Sahiwal: {
+    description: 'High-yielding zebu dairy breed adapted to hot climates.',
+    traits: ['Dairy breed', 'Heat tolerant', 'Tick resistant'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
   },
-  {
-    name: 'Mehsana',
-    species: 'buffalo',
-    origin: 'Gujarat, India',
-    description: 'Mehsana buffalo is a synthetic breed developed in Gujarat. They are known for good milk production and adaptability.',
-    traits: ['Good milk production', 'Adaptable', 'Long productive life'],
-    milkYield: { average: 10, unit: 'liters/day' },
-    characteristics: {
-      size: 'medium',
-      color: ['Black'],
-      horns: 'present'
-    }
+  Red_Sindhi: {
+    description: 'Red-coated dairy zebu noted for adaptation and longevity.',
+    traits: ['Dairy breed', 'Heat adapted', 'Disease resistant'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
   },
-  {
-    name: 'Nili-Ravi',
-    species: 'buffalo',
-    origin: 'Punjab, Pakistan/India',
-    description: 'Nili-Ravi is a buffalo breed known for high milk production. They are characterized by their distinctive white markings.',
-    traits: ['High milk production', 'Good fertility', 'White markings on face and legs'],
-    milkYield: { average: 14, unit: 'liters/day' },
-    characteristics: {
-      size: 'large',
-      color: ['Black with white markings'],
-      horns: 'present'
-    }
+  Tharparkar: {
+    description: 'Dual-purpose desert-adapted zebu breed from Rajasthan.',
+    traits: ['Dual-purpose', 'Drought tolerant', 'Hardy'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Hariana: {
+    description: 'Northern Indian zebu breed used for draught and milk.',
+    traits: ['Dual-purpose', 'Hardy'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Hallikar: {
+    description: 'South Indian draught zebu known for endurance.',
+    traits: ['Strong draught', 'Hardy'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Murrah: {
+    description: 'Premier Indian dairy buffalo with high butterfat milk.',
+    traits: ['Dairy breed', 'High milk fat'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Mehsana: {
+    description: 'Composite Indian dairy buffalo breed known for good milk.',
+    traits: ['Dairy breed', 'Adaptable'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Jaffrabadi: {
+    description: 'Massive Indian buffalo breed with strong frame.',
+    traits: ['Large frame', 'Good milk production'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Surti: {
+    description: 'Medium-sized Indian buffalo with steady milk yield.',
+    traits: ['Dairy breed', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Nili_Ravi: {
+    description: 'High-yield dairy buffalo from the Punjab region.',
+    traits: ['Dairy breed', 'Good fertility'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Holstein_Friesian: {
+    description: 'Global high-yield dairy cattle breed.',
+    traits: ['Very high milk production'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Jersey: {
+    description: 'Jersey dairy breed known for rich milk.',
+    traits: ['High milk fat', 'Efficient grazer'],
+    characteristics: { size: 'small', color: [], horns: 'present' }
+  },
+  Brown_Swiss: {
+    description: 'Sturdy dairy breed with good temperament.',
+    traits: ['Dairy breed', 'Hardy'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Guernsey: {
+    description: 'Channel Island dairy breed noted for golden milk.',
+    traits: ['High milk fat', 'Docile'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Ayrshire: {
+    description: 'Scottish dairy breed with balanced production.',
+    traits: ['Dairy breed', 'Robust'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Vechur: {
+    description: 'Small indigenous cattle breed from Kerala.',
+    traits: ['Small size', 'Adapted to humid climates'],
+    characteristics: { size: 'small', color: [], horns: 'present' }
+  },
+  Ongole: {
+    description: 'Indian zebu known internationally as Nellore.',
+    traits: ['Hardy', 'Draught power'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
+  },
+  Rathi: {
+    description: 'Indian dual-purpose breed from Rajasthan.',
+    traits: ['Dual-purpose', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Khillari: {
+    description: 'Deccan plateau draught breed with endurance.',
+    traits: ['Strong draught', 'Hardy'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Kangayam: {
+    description: 'Tamil Nadu draught breed with good adaptation.',
+    traits: ['Strong draught', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Deoni: {
+    description: 'Dual-purpose Indian breed with good milk and draught.',
+    traits: ['Dual-purpose', 'Hardy'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Dangi: {
+    description: 'Western Indian breed adapted to heavy rainfall regions.',
+    traits: ['Hardy', 'Good for draught'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Bhadawari: {
+    description: 'Indian buffalo known for high milk fat content.',
+    traits: ['High milk fat', 'Dairy breed'],
+    characteristics: { size: 'medium', color: [], horns: 'present' }
+  },
+  Nagpuri: {
+    description: 'Buffalo breed from Maharashtra adapted to arid conditions.',
+    traits: ['Adaptable', 'Dairy potential'],
+    characteristics: { size: 'large', color: [], horns: 'present' }
   }
-];
+};
 
 const seedBreeds = async () => {
   try {
+    console.log('Reading classes from:', classesPath);
+    const classesRaw = await fs.readFile(classesPath, 'utf-8');
+    const classes = JSON.parse(classesRaw);
+
+    if (!Array.isArray(classes) || classes.length === 0) {
+      throw new Error('classes.json is empty or invalid');
+    }
+
+    // Build seed array strictly from classes.json
+    const breedsData = classes.map((cls) => {
+      const species = BUFFALO_SET.has(cls) ? 'buffalo' : 'cattle';
+      const origin = ORIGIN_MAP[cls] || 'India';
+      const base = {
+        name: cls, // Keep exact class name (underscores) to match model output
+        species,
+        origin,
+        description: `Recognized ${species} breed.`,
+        isActive: true
+      };
+      const extra = OVERRIDES[cls] || {};
+      // Merge characteristics carefully to preserve object shape
+      const merged = {
+        ...base,
+        ...(extra.description ? { description: extra.description } : {}),
+        ...(Array.isArray(extra.traits) ? { traits: extra.traits } : {}),
+        ...(extra.characteristics ? { characteristics: {
+          size: extra.characteristics.size || null,
+          color: Array.isArray(extra.characteristics.color) ? extra.characteristics.color : [],
+          horns: extra.characteristics.horns || null
+        }} : {})
+      };
+      return merged;
+    });
+
     console.log('Connecting to database...');
     await connectDB();
 
     console.log('Clearing existing breed data...');
     await Breed.deleteMany({});
 
-    console.log('Seeding breed data...');
+    console.log('Seeding breed data from classes.json...');
     const createdBreeds = await Breed.insertMany(breedsData);
 
     console.log(`✅ Successfully seeded ${createdBreeds.length} breeds`);
-    console.log('Breeds seeded:');
-    createdBreeds.forEach(breed => {
-      console.log(`  - ${breed.name} (${breed.species})`);
+    console.log('Breeds seeded (name -> species):');
+    createdBreeds.forEach((breed) => {
+      console.log(`  - ${breed.name} -> ${breed.species}`);
     });
 
     process.exit(0);

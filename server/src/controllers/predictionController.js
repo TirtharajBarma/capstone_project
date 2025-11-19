@@ -1,6 +1,6 @@
 import axios from 'axios';
 import FormData from 'form-data';
-import { Prediction, Breed } from '../models/index.js';
+import { Prediction, Breed, User } from '../models/index.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
 // @desc    Make prediction using ML model
@@ -10,6 +10,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
   const { buffer, originalname, mimetype, size } = req.file;
   const userAgent = req.get('User-Agent');
   const ipAddress = req.ip || req.connection.remoteAddress;
+  const clerkIdHeader = (req.get('X-Clerk-Id') || '').trim();
   
   try {
     // Create FormData to send to ML model
@@ -64,19 +65,85 @@ export const predictBreed = asyncHandler(async (req, res) => {
       sessionId: req.sessionID || req.get('X-Session-ID') || null
     });
 
+    // Attach user if Clerk ID is provided
+    let attachedUserId = null;
+    if (clerkIdHeader) {
+      try {
+        const userDoc = await User.findOne({ clerkId: clerkIdHeader }).select('_id');
+        if (userDoc) {
+          attachedUserId = userDoc._id;
+          prediction.userId = userDoc._id;
+        }
+      } catch (e) {
+        console.warn('Could not resolve Clerk user for prediction:', e.message);
+      }
+    }
+
     // Save prediction to database
     const savedPrediction = await prediction.save();
 
-    // Try to get additional breed information
-    let breedInfo = null;
-    try {
-      breedInfo = await Breed.findOne({ 
-        name: new RegExp(`^${breed}$`, 'i'),
-        species: species || 'cattle'
-      });
-    } catch (error) {
-      console.warn('Could not fetch breed information:', error.message);
+    // If we attached a user, atomically increment their counters
+    if (attachedUserId) {
+      try {
+        await User.findByIdAndUpdate(attachedUserId, {
+          $inc: { 'stats.totalPredictions': 1 },
+          $set: { 'stats.lastActive': new Date() }
+        });
+      } catch (e) {
+        console.warn('Failed to increment user stats after prediction:', e.message);
+      }
     }
+
+    // Batch fetch breed metadata for primary and top predictions to avoid N+1 queries
+    const top3 = (top_predictions || [{ breed, confidence }]).slice(0, 3);
+    const namesToFetch = Array.from(new Set([breed, ...top3.map((tp) => tp.breed)]));
+    let docs = [];
+    try {
+      docs = await Breed.find({
+        species: species || 'cattle',
+        $or: namesToFetch.map((n) => ({ name: new RegExp(`^${n}$`, 'i') }))
+      }).select('name species origin description traits characteristics');
+    } catch (e) {
+      console.warn('Batch breed meta query failed:', e.message);
+    }
+
+    const docMap = new Map(
+      docs.map((d) => [String(d.name).toLowerCase(), d])
+    );
+
+    const toMeta = (name, sp) => {
+      const key = String(name).toLowerCase();
+      const doc = docMap.get(key);
+      if (!doc) {
+        return {
+          name,
+          species: sp || 'cattle',
+          origin: null,
+          description: null,
+          traits: [],
+          characteristics: { size: null, color: [], horns: null }
+        };
+      }
+      return {
+        name: doc.name,
+        species: doc.species,
+        origin: doc.origin || null,
+        description: doc.description || null,
+        traits: Array.isArray(doc.traits) ? doc.traits : [],
+        characteristics: {
+          size: doc.characteristics?.size || null,
+          color: Array.isArray(doc.characteristics?.color) ? doc.characteristics.color : [],
+          horns: doc.characteristics?.horns || null
+        }
+      };
+    };
+
+    const primaryBreedInfo = toMeta(breed, species);
+    const enrichedTop = top3.map((tp) => ({
+      breed: tp.breed,
+      confidence: tp.confidence,
+      breedInfo: toMeta(tp.breed, species)
+    }));
 
     // Prepare response
     const response = {
@@ -89,14 +156,8 @@ export const predictBreed = asyncHandler(async (req, res) => {
         species: species || 'cattle',
         inferenceTime: inference_time_ms,
         timestamp: savedPrediction.createdAt,
-        breedInfo: breedInfo ? {
-          name: breedInfo.name,
-          origin: breedInfo.origin,
-          description: breedInfo.description,
-          traits: breedInfo.traits,
-          characteristics: breedInfo.characteristics
-        } : null,
-        topPredictions: top_predictions?.slice(0, 3) || null // Limit to top 3
+        breedInfo: primaryBreedInfo,
+        topPredictions: enrichedTop
       },
       message: `Prediction completed with ${Math.round(confidence * 100)}% confidence`
     };
@@ -126,7 +187,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
     if (error.response) {
       return res.status(error.response.status || 500).json({
         success: false,
-        message: error.response.data?.message || 'Error from ML model service',
+        message: error.response.data?.message || error.response.data?.detail || 'Error from ML model service',
         error: 'MODEL_API_ERROR'
       });
     }

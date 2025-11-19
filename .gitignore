@@ -94,4 +94,8 @@ tmp/
 *.local.yml
 *.local.yaml
 PRD.txt 
+diagram.txt
 
+
+.github/instructions/kluster-code-verify.instructions.md
+.kluster

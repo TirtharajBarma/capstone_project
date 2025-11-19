@@ -53,18 +53,3 @@ export const errorHandler = (err, req, res, next) => {
 export const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
-
-// Rate limiting helper
-export const createRateLimit = (windowMs, max, message) => {
-  return {
-    windowMs,
-    max,
-    message: {
-      success: false,
-      message,
-      error: 'RATE_LIMIT_EXCEEDED'
-    },
-    standardHeaders: true,
-    legacyHeaders: false
-  };
-};

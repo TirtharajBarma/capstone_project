@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import Navigation from './components/layout/Navigation';
@@ -6,6 +6,8 @@ import Dashboard from './components/layout/Dashboard';
 import ResultsPanel from './components/layout/ResultsPanel';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import HistoryPage from './pages/HistoryPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import { predictionAPI, breedsAPI, utils, handleAPIError } from './services/api';
 import { useUserSync } from './hooks/useUserSync';
 import './App.css';
@@ -16,9 +18,10 @@ function App() {
   const [breedInfo, setBreedInfo] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState(null);
+  const resultsRef = useRef(null);
 
   // User synchronization hook
-  const { user, dbUser, incrementPredictionCount, isSignedIn } = useUserSync();
+  const { user, dbUser, isSignedIn } = useUserSync();
 
   const handleImageUpload = async (file) => {
     try {
@@ -35,21 +38,20 @@ function App() {
       setImageUrl(imgUrl);
 
       // Make prediction
-      const response = await predictionAPI.predict(file);
+      const response = await predictionAPI.predict(file, undefined, user?.id);
       
       if (response.success) {
         setPrediction(response.data);
         
-        // Increment user's prediction count if signed in
-        if (isSignedIn && user) {
-          incrementPredictionCount();
-        }
+        // Count is updated on the server using X-Clerk-Id; no client-side increment
         
-        // Get breed information if available
-        if (response.data.breed) {
+        // Prefer server-enriched breed info; fallback to breeds API if missing
+        if (response.data.breedInfo) {
+          setBreedInfo(response.data.breedInfo);
+        } else if (response.data.breed) {
           try {
             const breedResponse = await breedsAPI.getByName(
-              response.data.breed, 
+              response.data.breed,
               response.data.species
             );
             if (breedResponse.success) {
@@ -126,6 +128,24 @@ function App() {
     };
   }, [imageUrl]);
 
+  // Auto-scroll to the results section when loading starts or results are ready
+  useEffect(() => {
+    if (resultsRef.current && (isLoading || prediction)) {
+      // Delay slightly to ensure layout has rendered
+      const t = setTimeout(() => {
+        const el = resultsRef.current;
+        const nav = document.querySelector('.navbar-sticky');
+        const headerH = (nav && nav.offsetHeight) ? nav.offsetHeight : 0;
+        // Tuneable offset so we scroll a bit less (and account for sticky header)
+        const baseOffset = window.innerWidth < 768 ? 0.25 : 80; // mobile vs desktop
+        const offset = headerH + baseOffset;
+        const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      }, 120);
+      return () => clearTimeout(t);
+    }
+  }, [isLoading, prediction]);
+
   return (
     <Router>
       <div className="min-h-screen bg-white">
@@ -153,7 +173,7 @@ function App() {
                     />
                     
                     {(prediction || isLoading) && (
-                      <div className="max-w-7xl mx-auto px-4 py-8">
+                      <div ref={resultsRef} className="max-w-7xl mx-auto px-4 py-8" id="results-section">
                         {isLoading ? (
                           <div className="card p-12 text-center">
                             <div className="loading-dots mx-auto mb-4">
@@ -182,33 +202,9 @@ function App() {
             />
             
             {/* Protected Routes - require authentication */}
-            <Route 
-              path="/history" 
-              element={
-                <SignedIn>
-                  <div className="max-w-7xl mx-auto px-4 py-12">
-                    <div className="card p-12 text-center">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-4">History</h2>
-                      <p className="text-gray-600">Coming soon - View your prediction history</p>
-                    </div>
-                  </div>
-                </SignedIn>
-              } 
-            />
+            <Route path="/history" element={<HistoryPage />} />
             
-            <Route 
-              path="/analytics" 
-              element={
-                <SignedIn>
-                  <div className="max-w-7xl mx-auto px-4 py-12">
-                    <div className="card p-12 text-center">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-4">Analytics</h2>
-                      <p className="text-gray-600">Coming soon - View statistics and insights</p>
-                    </div>
-                  </div>
-                </SignedIn>
-              } 
-            />
+            <Route path="/analytics" element={<AnalyticsPage />} />
             
             {/* Authentication Routes */}
             <Route 

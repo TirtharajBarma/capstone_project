@@ -53,11 +53,12 @@ const ResultsPanel = ({
           {/* Image Preview */}
           {imageUrl && (
             <div className="space-y-4">
-              <div className="relative group">
+              <div className="relative group bg-white rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
+                {/* Container uses max height and object-contain to avoid cropping */}
                 <img
                   src={imageUrl}
                   alt="Uploaded"
-                  className="w-full h-48 object-cover rounded-lg shadow-sm"
+                  className="max-h-[480px] w-full object-contain"
                 />
                 <div className="absolute bottom-3 left-3 right-3 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-2">
                   <button onClick={onDownload} className="btn-secondary text-sm px-3 py-2">

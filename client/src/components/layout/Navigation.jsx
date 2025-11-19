@@ -32,23 +32,51 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                    isActive(item.path)
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            {/* Home is always clickable */}
+            <Link
+              to="/"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
+                isActive('/') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+            </Link>
+
+            {/* History / Analytics: require sign-in */}
+            <SignedIn>
+              {[{ path: '/history', label: 'History', icon: History }, { path: '/analytics', label: 'Analytics', icon: BarChart3 }].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
+                      isActive(item.path) ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </SignedIn>
+            <SignedOut>
+              {[{ label: 'History', icon: History }, { label: 'Analytics', icon: BarChart3 }].map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <SignInButton key={idx} mode="modal">
+                    <button
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 text-gray-700 hover:bg-gray-100"
+                      title="Login to access"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  </SignInButton>
+                );
+              })}
+            </SignedOut>
           </div>
 
           {/* Desktop Auth Buttons */}
@@ -95,25 +123,55 @@ const Navigation = () => {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 bg-white shadow-lg animate-fade-in">
             <div className="px-4 pt-4 pb-6 space-y-2">
-              {navItems.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 ${
-                      isActive(item.path)
-                        ? 'bg-gray-900 text-white shadow-md'
-                        : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
-                    }`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+              {/* Mobile: Home link always */}
+              <Link
+                to="/"
+                onClick={() => setIsMenuOpen(false)}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 ${
+                  isActive('/') ? 'bg-gray-900 text-white shadow-md' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
+                }`}
+              >
+                <Home className="w-5 h-5" />
+                <span>Home</span>
+              </Link>
+
+              {/* Mobile: Guarded links show SignIn modal when logged out */}
+              <SignedIn>
+                {[{ path: '/history', label: 'History', icon: History }, { path: '/analytics', label: 'Analytics', icon: BarChart3 }].map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 ${
+                        isActive(item.path) ? 'bg-gray-900 text-white shadow-md' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
+                      }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </SignedIn>
+              <SignedOut>
+                {[{ label: 'History', icon: History }, { label: 'Analytics', icon: BarChart3 }].map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <SignInButton key={index} mode="modal">
+                      <button
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                      </button>
+                    </SignInButton>
+                  );
+                })}
+              </SignedOut>
               
               <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
                 <SignedOut>
