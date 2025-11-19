@@ -1,0 +1,25 @@
+# Node
+node_modules/
+
+# Env
+.env
+.env.*
+
+# Builds / caches
+build/
+dist/
+coverage/
+.cache/
+.temp/
+
+# Logs
+logs/
+*.log
+
+# Uploads (generated at runtime)
+uploads/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

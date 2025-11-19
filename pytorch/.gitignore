@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Model files
+*.pth
+*.pt
+*.onnx
+
+# System / VSCode / misc
+.env
+.vscode/
+.DS_Store

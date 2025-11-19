@@ -99,3 +99,25 @@ diagram.txt
 
 .github/instructions/kluster-code-verify.instructions.md
 .kluster
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Model files
+*.pth
+*.pt
+*.onnx
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
