@@ -1,6 +1,6 @@
-# Cattle Breed Recognition - Backend Server
+# Backend Server
 
-Backend API for the Cattle and Buffalo Breed Recognition system built with Node.js, Express, and MongoDB.
+Node.js Express server for the Cattle Breed Recognition system.
 
 ## Features
 
@@ -46,7 +46,7 @@ Backend API for the Cattle and Buffalo Breed Recognition system built with Node.
 
 ## Installation
 
-1. **Clone the repository**
+1. **Navigate to server directory**
    ```bash
    cd server
    ```
@@ -57,22 +57,17 @@ Backend API for the Cattle and Buffalo Breed Recognition system built with Node.
    ```
 
 3. **Environment Setup**
-   Copy the `.env` file and update the configuration:
-   ```bash
-   cp .env.example .env
-   ```
-
-   Update the following variables in `.env`:
+   Create a `.env` file with the following variables:
    ```env
    # Server Configuration
-   PORT=5000
+   PORT=5002
    NODE_ENV=development
 
    # MongoDB Atlas Configuration
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/cattle-breed-recognition
 
    # ML Model API Configuration
-   MODEL_API_URL=http://127.0.0.1:5000/predict
+   MODEL_API_URL=http://127.0.0.1:8000/predict
    MODEL_API_TIMEOUT=30000
 
    # Upload Configuration
@@ -84,14 +79,12 @@ Backend API for the Cattle and Buffalo Breed Recognition system built with Node.
    ```
 
 4. **Database Setup**
-   
    Seed the database with initial breed data:
    ```bash
    npm run seed
    ```
 
 5. **Start the server**
-   
    Development mode:
    ```bash
    npm run dev
@@ -138,33 +131,33 @@ server/
 
 ### Upload Image for Prediction
 ```bash
-curl -X POST http://localhost:5000/api/predict \
+curl -X POST http://localhost:5002/api/predict \
   -F "image=@/path/to/cattle-image.jpg"
 ```
 
 ### Get All Breeds
 ```bash
-curl http://localhost:5000/api/breeds
+curl http://localhost:5002/api/breeds
 ```
 
 ### Search Breeds
 ```bash
-curl "http://localhost:5000/api/breeds/search?q=gir"
+curl "http://localhost:5002/api/breeds/search?q=gir"
 ```
 
 ### Get Prediction History
 ```bash
-curl "http://localhost:5000/api/history?page=1&limit=10"
+curl "http://localhost:5002/api/history?page=1&limit=10"
 ```
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PORT` | Server port | 5000 |
+| `PORT` | Server port | 5002 |
 | `NODE_ENV` | Environment | development |
 | `MONGODB_URI` | MongoDB connection string | Required |
-| `MODEL_API_URL` | ML model API endpoint | http://127.0.0.1:5000/predict |
+| `MODEL_API_URL` | ML model API endpoint | http://127.0.0.1:8000/predict |
 | `MODEL_API_TIMEOUT` | Request timeout (ms) | 30000 |
 | `MAX_FILE_SIZE` | Max upload size (bytes) | 5242880 |
 | `ALLOWED_FILE_TYPES` | Allowed MIME types | image/jpeg,image/png,image/jpg |
@@ -206,36 +199,6 @@ curl "http://localhost:5000/api/history?page=1&limit=10"
 
 3. **Monitor logs**
    The server provides detailed logging for all requests and errors.
-
-## Deployment
-
-1. **Set environment to production**
-   ```env
-   NODE_ENV=production
-   ```
-
-2. **Use PM2 for process management**
-   ```bash
-   npm install -g pm2
-   pm2 start server.js --name cattle-api
-   ```
-
-3. **Configure reverse proxy (Nginx)**
-   ```nginx
-   location /api {
-       proxy_pass http://localhost:5000;
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-   }
-   ```
-
-## Contributing
-
-1. Follow the existing code structure
-2. Add proper error handling
-3. Include input validation
-4. Write descriptive commit messages
-5. Test API endpoints before submitting
 
 ## License
 
