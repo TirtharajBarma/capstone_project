@@ -1,6 +1,6 @@
 # Cattle Breed Recognition System
 
-AI-powered cattle and buffalo breed recognition system using deep learning. Identifies 41 different breeds with high accuracy.
+AI-powered cattle and buffalo breed recognition system using deep learning. Identifies 41 different breeds with accuracy.
 
 ## 🏗️ Architecture
 
