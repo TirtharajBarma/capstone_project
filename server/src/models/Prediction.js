@@ -24,7 +24,7 @@ const predictionSchema = new mongoose.Schema({
   species: {
     type: String,
     required: true,
-    enum: ['cattle', 'buffalo'],
+    enum: ['cattle', 'buffalo', 'unknown'],
     lowercase: true
   },
   imageMetadata: {

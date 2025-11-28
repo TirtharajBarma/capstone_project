@@ -46,11 +46,21 @@ export const predictBreed = asyncHandler(async (req, res) => {
       throw new Error('Invalid confidence score from ML model');
     }
 
+    // Map ML model species output to database format
+    let mappedSpecies = 'cattle'; // default
+    if (species === 'cow') {
+      mappedSpecies = 'cattle';
+    } else if (species === 'buffalo') {
+      mappedSpecies = 'buffalo';
+    } else if (species === 'unknown') {
+      mappedSpecies = 'unknown';
+    }
+
     // Create prediction record
     const prediction = new Prediction({
       predictedBreed: breed,
       confidence: parseFloat(confidence),
-      species: species || 'cattle', // Default to cattle if not specified
+      species: mappedSpecies, // Use mapped species value
       imageMetadata: {
         originalName: originalname,
         mimetype: mimetype,
@@ -100,7 +110,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
     let docs = [];
     try {
       docs = await Breed.find({
-        species: species || 'cattle',
+        species: mappedSpecies === 'unknown' ? 'cattle' : mappedSpecies, // Default to cattle for unknown
         $or: namesToFetch.map((n) => ({ name: new RegExp(`^${n}$`, 'i') }))
       }).select('name species origin description traits characteristics');
     } catch (e) {
@@ -117,7 +127,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
       if (!doc) {
         return {
           name,
-          species: sp || 'cattle',
+          species: sp || mappedSpecies || 'cattle',
           origin: null,
           description: null,
           traits: [],
@@ -153,7 +163,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
         breed: breed,
         confidence: confidence,
         confidencePercentage: Math.round(confidence * 100 * 100) / 100,
-        species: species || 'cattle',
+        species: mappedSpecies,
         inferenceTime: inference_time_ms,
         timestamp: savedPrediction.createdAt,
         breedInfo: primaryBreedInfo,

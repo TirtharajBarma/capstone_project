@@ -1,0 +1,14 @@
+{
+  "cow": [
+    "Alambadi", "Amritmahal", "Ayrshire", "Banni", "Bargur", "Bhadawari", 
+    "Brown_Swiss", "Dangi", "Deoni", "Gir", "Guernsey", "Hallikar", 
+    "Hariana", "Holstein_Friesian", "Jersey", "Kangayam", "Kankrej", 
+    "Kasargod", "Kenkatha", "Kherigarh", "Khillari", "Krishna_Valley", 
+    "Malnad_gidda", "Nagori", "Nagpuri", "Nimari", "Ongole", "Pulikulam", 
+    "Rathi", "Red_Dane", "Red_Sindhi", "Sahiwal", "Tharparkar", "Toda", 
+    "Umblachery", "Vechur"
+  ],
+  "buffalo": [
+    "Jaffrabadi", "Mehsana", "Murrah", "Nili_Ravi", "Surti"
+  ]
+}

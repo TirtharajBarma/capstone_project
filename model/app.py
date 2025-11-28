@@ -48,12 +48,14 @@ model_service: ModelService | None = None
 @app.on_event("startup")
 def startup_event():
     global model_service
-    model_path = os.getenv("MODEL_PATH", os.path.join(os.path.dirname(__file__), "best_model.pth"))
+    model_path = os.getenv("MODEL_PATH", os.path.join(os.path.dirname(__file__), "best_cattle_model_pro.pth"))
     if not os.path.exists(model_path):
-        # fallback to final_model.pth
-        alt_path = os.path.join(os.path.dirname(__file__), "final_model.pth")
-        if os.path.exists(alt_path):
-            model_path = alt_path
+        # fallback to older models
+        for fallback in ["best_model.pth", "final_model.pth"]:
+            alt_path = os.path.join(os.path.dirname(__file__), fallback)
+            if os.path.exists(alt_path):
+                model_path = alt_path
+                break
 
     classes_path = os.getenv("CLASSES_PATH", os.path.join(os.path.dirname(__file__), "classes.json"))
     device = os.getenv("MODEL_DEVICE", None)
@@ -94,11 +96,17 @@ async def predict(image: UploadFile = File(...)):
         pil = Image.open(BytesIO(content))
         breed, confidence, top_predictions, elapsed_ms = model_service.predict(pil)
 
+        # Determine species based on the predicted breed
+        if breed == "unknown":
+            species = "unknown"
+        else:
+            species = model_service._classify_species(breed)
+
         return {
             "breed": breed,
             "confidence": float(confidence),
             "inference_time_ms": float(elapsed_ms),
-            "species": "cattle",
+            "species": species,
             "top_predictions": top_predictions,
         }
     except HTTPException:
