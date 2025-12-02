@@ -6,8 +6,6 @@ const ResultsPanel = ({
   breedInfo, 
   imageUrl, 
   onSave, 
-  onShare, 
-  onDownload,
   isSaved = false,
   isSaving = false
 }) => {

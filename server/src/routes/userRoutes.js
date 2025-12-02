@@ -8,28 +8,32 @@ import {
   incrementPredictionCount,
   deleteUser
 } from '../controllers/userController.js';
+import { requireAuth, requireOwner } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get user profile by Clerk ID
-router.get('/profile/:clerkId', getUserProfile);
-
 // Sync user data from Clerk (create or update)
-router.post('/sync', syncUserFromClerk);
+// This might be called by the webhook or the frontend immediately after sign-up
+// If called by frontend, it should be authenticated.
+router.post('/sync', requireAuth, syncUserFromClerk);
+
+// Get user profile by Clerk ID
+router.get('/profile/:clerkId', requireAuth, requireOwner, getUserProfile);
 
 // Update user preferences
-router.put('/preferences/:clerkId', updateUserPreferences);
+router.put('/preferences/:clerkId', requireAuth, requireOwner, updateUserPreferences);
 
 // Get user statistics
-router.get('/stats/:clerkId', getUserStats);
+router.get('/stats/:clerkId', requireAuth, requireOwner, getUserStats);
 
 // Get user analytics (for dashboard)
-router.get('/analytics/:clerkId', getUserAnalytics);
+router.get('/analytics/:clerkId', requireAuth, requireOwner, getUserAnalytics);
 
 // Increment prediction count
-router.post('/increment-prediction/:clerkId', incrementPredictionCount);
+// This is typically internal but if exposed via API it should be protected
+router.post('/increment-prediction/:clerkId', requireAuth, requireOwner, incrementPredictionCount);
 
 // Delete user account
-router.delete('/:clerkId', deleteUser);
+router.delete('/:clerkId', requireAuth, requireOwner, deleteUser);
 
 export default router;
