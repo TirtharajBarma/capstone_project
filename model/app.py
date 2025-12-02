@@ -96,6 +96,9 @@ async def predict(image: UploadFile = File(...)):
         pil = Image.open(BytesIO(content))
         breed, confidence, top_predictions, elapsed_ms = model_service.predict(pil)
 
+        # Explicitly close the PIL image
+        pil.close()
+
         # Determine species based on the predicted breed
         if breed == "unknown":
             species = "unknown"
