@@ -1,5 +1,6 @@
 import axios from 'axios';
 import FormData from 'form-data';
+import { fileTypeFromBuffer } from 'file-type';
 import { Prediction, Breed, User } from '../models/index.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
@@ -14,6 +15,16 @@ export const predictBreed = asyncHandler(async (req, res) => {
   const saveToDb = req.query.saveToDb !== 'false'; // Default true, false if explicitly set
   
   try {
+    // Validate file type via magic numbers
+    const type = await fileTypeFromBuffer(buffer);
+    if (!type || !['image/jpeg', 'image/png', 'image/jpg'].includes(type.mime)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid file type. Only JPEG and PNG images are allowed.',
+            error: 'INVALID_FILE_TYPE'
+        });
+    }
+
     // Create FormData to send to ML model
     const formData = new FormData();
     formData.append('image', buffer, {

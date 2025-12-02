@@ -210,8 +210,13 @@ export const handleAPIError = (error) => {
   if (error.response) {
     // Server responded with error status
     const { status, data } = error.response;
+    // Handle various backend error formats
+    const message = data.message ||
+                    data.detail ||
+                    (typeof data === 'string' ? data : 'An error occurred');
+
     return {
-      message: data.message || 'An error occurred',
+      message: message,
       error: data.error || 'API_ERROR',
       status,
     };
