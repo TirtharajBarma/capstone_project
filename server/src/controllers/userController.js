@@ -129,6 +129,73 @@ export const getUserStats = async (req, res) => {
   }
 };
 
+// Get user analytics for dashboard
+export const getUserAnalytics = async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+    
+    const user = await User.findOne({ clerkId });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Import Prediction and Breed models
+    const { Prediction, Breed } = await import('../models/index.js');
+
+    // Get user's predictions
+    const predictions = await Prediction.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Calculate analytics
+    const totalAnalyses = predictions.length;
+    const uniqueBreeds = [...new Set(predictions.map(p => p.predictedBreed))].length;
+    const accuracyRate = predictions.length > 0
+      ? (predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length) * 100
+      : 0;
+
+    // Get recent recognitions (last 8) with breed images
+    const recentPredictions = predictions.slice(0, 8);
+    const recentRecognitions = await Promise.all(
+      recentPredictions.map(async (pred) => {
+        const breed = await Breed.findOne({ 
+          name: pred.predictedBreed,
+          species: pred.species 
+        }).select('imageUrl');
+        
+        return {
+          id: pred._id,
+          breed: pred.predictedBreed,
+          species: pred.species,
+          confidence: Math.round(pred.confidence * 100),
+          timestamp: pred.createdAt,
+          imageUrl: breed?.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed)
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: {
+        totalAnalyses,
+        uniqueBreeds,
+        accuracyRate: Math.round(accuracyRate * 10) / 10,
+        recentRecognitions
+      }
+    });
+  } catch (error) {
+    console.error('Get user analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
 // Increment prediction count
 export const incrementPredictionCount = async (req, res) => {
   try {

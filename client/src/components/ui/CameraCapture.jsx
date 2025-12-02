@@ -9,9 +9,24 @@ const CameraCapture = ({ onCapture, onClose }) => {
   useEffect(() => {
     isMounted.current = true;
     startCamera();
+
+    // Stop camera when tab/window loses visibility (helps desktop cases)
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        stopCamera();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Stop camera on page unload
+    const onBeforeUnload = () => stopCamera();
+    window.addEventListener('beforeunload', onBeforeUnload);
+
     return () => {
       isMounted.current = false;
       stopCamera();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, []);
 
@@ -29,7 +44,25 @@ const CameraCapture = ({ onCapture, onClose }) => {
 
       streamRef.current = mediaStream;
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+        const videoEl = videoRef.current;
+        videoEl.srcObject = mediaStream;
+        // Some desktop browsers require muted + explicit play after canplay
+        const tryPlay = async () => {
+          try {
+            await videoEl.play();
+          } catch (playError) {
+            console.error("Error playing video:", playError);
+          }
+        };
+        if (videoEl.readyState >= 2) {
+          tryPlay();
+        } else {
+          const onCanPlay = () => {
+            videoEl.removeEventListener('canplay', onCanPlay);
+            tryPlay();
+          };
+          videoEl.addEventListener('canplay', onCanPlay);
+        }
       }
     } catch (err) {
       if (isMounted.current) {
@@ -94,8 +127,9 @@ const CameraCapture = ({ onCapture, onClose }) => {
           ) : (
             <video 
               ref={videoRef} 
-              autoPlay 
-              playsInline 
+              autoPlay
+              playsInline
+              muted
               className="absolute inset-0 h-full w-full object-cover"
             />
           )}

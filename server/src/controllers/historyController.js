@@ -1,4 +1,5 @@
 import { Prediction } from '../models/index.js';
+import { getUserFromClerkId } from '../utils/user.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
 // @desc    Get prediction history
@@ -16,11 +17,22 @@ export const getPredictionHistory = asyncHandler(async (req, res) => {
     sortBy = 'createdAt',
     sortOrder = 'desc',
     userId,
+    clerkId,
     sessionId
   } = req.query;
 
   // Build query
   const query = {};
+  
+  // Filter by user if provided
+  if (clerkId) {
+    const user = await getUserFromClerkId(clerkId);
+    if (user) {
+      query.userId = user._id;
+    }
+  } else if (userId) {
+    query.userId = userId;
+  }
 
   if (species) {
     query.species = species.toLowerCase();
@@ -38,10 +50,6 @@ export const getPredictionHistory = asyncHandler(async (req, res) => {
     query.createdAt = {};
     if (startDate) query.createdAt.$gte = new Date(startDate);
     if (endDate) query.createdAt.$lte = new Date(endDate);
-  }
-
-  if (userId) {
-    query.userId = userId;
   }
 
   if (sessionId) {
@@ -107,10 +115,21 @@ export const getPredictionHistory = asyncHandler(async (req, res) => {
 // @route   GET /api/history/stats
 // @access  Public
 export const getPredictionStats = asyncHandler(async (req, res) => {
-  const { startDate, endDate, species } = req.query;
+  const { startDate, endDate, species, userId, clerkId } = req.query;
 
   // Build date filter
   const dateFilter = {};
+  
+  // Filter by user if provided
+  if (clerkId) {
+    const user = await getUserFromClerkId(clerkId);
+    if (user) {
+      dateFilter.userId = user._id;
+    }
+  } else if (userId) {
+    dateFilter.userId = userId;
+  }
+  
   if (startDate || endDate) {
     dateFilter.createdAt = {};
     if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
@@ -122,7 +141,7 @@ export const getPredictionStats = asyncHandler(async (req, res) => {
   }
 
   try {
-    const [basicStats, breedDistribution, confidenceStats, dailyStats] = await Promise.all([
+    const [basicStats, breedDistribution, confidenceStats, dailyCount, dailyAccuracy] = await Promise.all([
       // Basic statistics
       Prediction.aggregate([
         { $match: dateFilter },
@@ -170,14 +189,11 @@ export const getPredictionStats = asyncHandler(async (req, res) => {
         }
       ]),
 
-      // Daily prediction count (last 30 days)
+      // Daily prediction count
       Prediction.aggregate([
         {
           $match: {
-            ...dateFilter,
-            createdAt: {
-              $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-            }
+            ...dateFilter
           }
         },
         {
@@ -185,6 +201,19 @@ export const getPredictionStats = asyncHandler(async (req, res) => {
             _id: {
               $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
             },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id': 1 } }
+      ]),
+
+      // Daily average confidence
+      Prediction.aggregate([
+        { $match: { ...dateFilter } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            avgConfidence: { $avg: '$confidence' },
             count: { $sum: 1 }
           }
         },
@@ -221,7 +250,12 @@ export const getPredictionStats = asyncHandler(async (req, res) => {
         avgConfidence: Math.round(breed.avgConfidence * 100 * 100) / 100
       })),
       confidenceDistribution: confidenceStats,
-      dailyStats: dailyStats
+      dailyStats: dailyCount,
+      dailyAccuracy: dailyAccuracy.map(d => ({
+        date: d._id,
+        accuracy: Math.round(d.avgConfidence * 100 * 100) / 100,
+        count: d.count
+      }))
     };
 
     res.status(200).json({

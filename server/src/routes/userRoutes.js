@@ -4,6 +4,7 @@ import {
   syncUserFromClerk,
   updateUserPreferences,
   getUserStats,
+  getUserAnalytics,
   incrementPredictionCount,
   deleteUser
 } from '../controllers/userController.js';
@@ -21,6 +22,9 @@ router.put('/preferences/:clerkId', updateUserPreferences);
 
 // Get user statistics
 router.get('/stats/:clerkId', getUserStats);
+
+// Get user analytics (for dashboard)
+router.get('/analytics/:clerkId', getUserAnalytics);
 
 // Increment prediction count
 router.post('/increment-prediction/:clerkId', incrementPredictionCount);

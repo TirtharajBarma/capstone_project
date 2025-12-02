@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import Sidebar from '../components/layout/Sidebar';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
+import { historyAPI, handleAPIError } from '../services/api';
 
 const AnalyticsDashboard = () => {
+  const { user } = useUser();
+  const [dateRange, setDateRange] = useState('30'); // days
   const [stats, setStats] = useState({
     totalSubmissions: 0,
     accuracy: 0,
@@ -18,76 +22,86 @@ const AnalyticsDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Replace with actual API calls
-    // Simulating API data fetch
-    setStats({
-      totalSubmissions: 1482,
-      accuracy: 92.3,
-      accuracyChange: 1.2,
-      mostCommonBreed: 'Holstein Friesian',
-      breedPercentage: 28,
-      submissionsChange: 12
-    });
+    const fetchAnalytics = async () => {
+      if (!user?.id) return;
 
-    setBreedData([
-      { name: 'Holstein', value: 60 },
-      { name: 'Jersey', value: 100 },
-      { name: 'Angus', value: 80 },
-      { name: 'Hereford', value: 75 },
-      { name: 'Gir', value: 50 },
-      { name: 'Sahiwal', value: 30 },
-      { name: 'Murrah', value: 25 }
-    ]);
+      try {
+        setLoading(true);
 
-    setAccuracyData([
-      { name: 'Week 1', accuracy: 85 },
-      { name: 'Week 1.5', accuracy: 92 },
-      { name: 'Week 2', accuracy: 78 },
-      { name: 'Week 2.5', accuracy: 88 },
-      { name: 'Week 3', accuracy: 82 },
-      { name: 'Week 3.5', accuracy: 91 },
-      { name: 'Week 4', accuracy: 75 },
-      { name: 'Week 4.5', accuracy: 95 },
-      { name: 'Week 5', accuracy: 80 }
-    ]);
+        // Calculate date range
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(dateRange));
 
-    setRecentSubmissions([
-      {
-        id: 1,
-        breed: 'Holstein Friesian',
-        confidence: '98.2%',
-        status: 'Successful',
-        date: '2024-05-20',
-        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDyQOwvP8PPl5DzcGlSWxiK5SK3ZFtLH9u3BiLy6P1XHllClsliVJCOtO-vhk5jmJXNWaE6RAnrVk6qqsRj146h5ObBIEnH0L3Oc_NBbg4WvFUYufmLkuJV3HVtpn5diara1VRmzkv_3_4eAl2n4b6i1SE8JO_RULVaAhCD8yYdiAYItNxjIw86APmv36BzWKy7LiCLp0tD0JrfK0iOYutWUZrueAnlKefetKKHDVeGdSBqci9Ewu5rOca-lPtQL9ZTOlHe8aUl6qbO'
-      },
-      {
-        id: 2,
-        breed: 'Jersey',
-        confidence: '95.5%',
-        status: 'Successful',
-        date: '2024-05-20',
-        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBdoE24RuAGKA9q21VB9xL_g3-b84TpsEcVJK9rG4YO6ZJieF0R000rrb-7pnJ-uHMXITAgL-JOKxZXi6QzhD11C08F_iW9K-cTees0diV1E0mRS6Tu_6dNTgHOQjALkesKa0jR_uE4Ch4RfPv0egpB5kSRK76I8XndLv7culPIAyzHUvLGioswcrvhp4oXlBRaEmSKfKRVXhofApv_U2AmVRv2g8LYXNlOObpvlaPDT2w69KFEkwz2gitB5x1dQZ3vF5VzONoVR3yd'
-      },
-      {
-        id: 3,
-        breed: 'Angus',
-        confidence: '89.7%',
-        status: 'Successful',
-        date: '2024-05-19',
-        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCzZz7SdcbBn-7kp31GsaWpR1g-OX8nCjpLyZBajrZTNtyYHngSBBRJyRUgeWpdAtYrfDq1KbDesz0UuYyZM8iFaphC90fcv8B7oMl8Casjv9-EX0QKqq3eh4LaHKs2nf4YDrTzl3SNgPkoTGqhhSzAwP0jiwr6Q8vVurjCSBqInY_sdqEa7gWPYdkLvm0oG96n4p1ET8gnIHURXQ264yvdff-eqd__PX-1xzy1JyCmoUClNl4baZWzMcLhyYe3yJ02BHC7-m3QTNa2'
-      },
-      {
-        id: 4,
-        breed: 'Unknown',
-        confidence: '-',
-        status: 'Failed',
-        date: '2024-05-18',
-        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBgP4PHiCvjRN435L3jR7h8jVrRu8KxqnQPw36S2EtXz33FcvvZScHqJh2_sr-MDQXixl-ISkrgnY0cPX21gyC6wEN1VD4Cv9kGaAm4L0BnsJOwSon93_u2RcHRErlDqMrLsC7aSkKENDM9-TzpYgJ3UlMaEgG9VmSwFkKha05wlrkNTn1ghQq2NweJaomDcvkhI6RDyKTMyPkMoTpkt8dvp5w0oBovH3pS8VbhUJiylOYNTugdpwNGr3y2wI3gJ-_wuxIsY0ep8J6s'
+        // Fetch stats from backend with clerkId and date filter
+        const statsResponse = await historyAPI.getStats({ 
+          clerkId: user.id,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        });
+        
+        if (statsResponse.success) {
+          const data = statsResponse.data;
+          
+          // Set main stats
+          setStats({
+            totalSubmissions: data.totalPredictions || 0,
+            accuracy: data.avgConfidence || 0,
+            accuracyChange: 0, // TODO: Calculate from historical data
+            mostCommonBreed: data.topBreeds?.[0]?._id || 'N/A',
+            breedPercentage: data.topBreeds?.[0] ? Math.round((data.topBreeds[0].count / data.totalPredictions) * 100) : 0,
+            submissionsChange: 0 // TODO: Calculate from historical data
+          });
+
+          // Transform breed distribution for chart
+          if (data.topBreeds && data.topBreeds.length > 0) {
+            setBreedData(data.topBreeds.slice(0, 7).map(breed => ({
+              name: breed._id.substring(0, 10), // Truncate long names
+              value: breed.count
+            })));
+          }
+
+          // Use backend-provided daily accuracy
+          if (data.dailyAccuracy && data.dailyAccuracy.length > 0) {
+            setAccuracyData(data.dailyAccuracy.map(d => ({
+              name: d.date,
+              accuracy: d.accuracy
+            })));
+          } else {
+            setAccuracyData([]);
+          }
+        }
+
+        // Fetch recent submissions
+        const historyResponse = await historyAPI.getHistory({ 
+          clerkId: user.id, 
+          page: 1, 
+          limit: 4 
+        });
+
+        if (historyResponse.success) {
+          const predictions = historyResponse.data.predictions || [];
+          setRecentSubmissions(predictions.map(pred => ({
+            id: pred._id,
+            breed: pred.predictedBreed,
+            confidence: `${pred.confidencePercentage}%`,
+            status: 'Successful',
+            date: new Date(pred.createdAt).toISOString().split('T')[0],
+            image: pred.imageUrl || `https://via.placeholder.com/400x300?text=${encodeURIComponent(pred.predictedBreed)}`
+          })));
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+        const errorInfo = handleAPIError(error);
+        console.error(errorInfo.message);
+      } finally {
+        setLoading(false);
       }
-    ]);
+    };
 
-    setLoading(false);
-  }, []);
+    fetchAnalytics();
+  }, [user?.id, dateRange]);
 
   if (loading) {
     return (
@@ -115,11 +129,16 @@ const AnalyticsDashboard = () => {
               {/* Page Heading */}
               <header className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-gray-800 text-5xl font-black leading-tight tracking-tighter">Breed Analytics</h1>
-                <button className="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-5 bg-white text-gray-700 text-base font-semibold leading-normal tracking-wide border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <span className="material-symbols-outlined">calendar_today</span>
-                  <span className="truncate">Last 30 Days</span>
-                  <span className="material-symbols-outlined">expand_more</span>
-                </button>
+                <select 
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-5 bg-white text-gray-700 text-base font-semibold leading-normal tracking-wide border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <option value="7">Last 7 Days</option>
+                  <option value="30">Last 30 Days</option>
+                  <option value="90">Last 90 Days</option>
+                  <option value="365">Last Year</option>
+                </select>
               </header>
 
               {/* Stats Cards */}

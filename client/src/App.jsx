@@ -35,8 +35,14 @@ function App() {
       // Create image URL for preview
       const imgUrl = utils.createImageURL(file);
 
+      // Determine if user is authenticated
+      const isAuthenticated = !!user?.id;
+      
+      // Only save to DB if user is authenticated
+      const saveToDb = isAuthenticated;
+
       // Make prediction
-      const response = await predictionAPI.predict(file, undefined, user?.id);
+      const response = await predictionAPI.predict(file, undefined, user?.id, saveToDb);
       
       if (response.success) {
         let breedInfo = response.data.breedInfo;
@@ -61,7 +67,9 @@ function App() {
           state: { 
             prediction: response.data, 
             imageUrl: imgUrl, 
-            breedInfo: breedInfo 
+            breedInfo: breedInfo,
+            saved: response.data.saved || false,
+            unsavedPredictionData: response.data.unsavedPredictionData || null
           } 
         });
       } else {

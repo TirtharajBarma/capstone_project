@@ -11,6 +11,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
   const userAgent = req.get('User-Agent');
   const ipAddress = req.ip || req.connection.remoteAddress;
   const clerkIdHeader = (req.get('X-Clerk-Id') || '').trim();
+  const saveToDb = req.query.saveToDb !== 'false'; // Default true, false if explicitly set
   
   try {
     // Create FormData to send to ML model
@@ -56,11 +57,11 @@ export const predictBreed = asyncHandler(async (req, res) => {
       mappedSpecies = 'unknown';
     }
 
-    // Create prediction record
-    const prediction = new Prediction({
+    // Prepare prediction data
+    const predictionData = {
       predictedBreed: breed,
       confidence: parseFloat(confidence),
-      species: mappedSpecies, // Use mapped species value
+      species: mappedSpecies,
       imageMetadata: {
         originalName: originalname,
         mimetype: mimetype,
@@ -73,34 +74,42 @@ export const predictBreed = asyncHandler(async (req, res) => {
       ipAddress,
       userAgent,
       sessionId: req.sessionID || req.get('X-Session-ID') || null
-    });
+    };
 
-    // Attach user if Clerk ID is provided
+    let savedPrediction = null;
     let attachedUserId = null;
-    if (clerkIdHeader) {
-      try {
-        const userDoc = await User.findOne({ clerkId: clerkIdHeader }).select('_id');
-        if (userDoc) {
-          attachedUserId = userDoc._id;
-          prediction.userId = userDoc._id;
+
+    // Only save to DB if saveToDb is true
+    if (saveToDb) {
+      // Create prediction record
+      const prediction = new Prediction(predictionData);
+
+      // Attach user if Clerk ID is provided
+      if (clerkIdHeader) {
+        try {
+          const userDoc = await User.findOne({ clerkId: clerkIdHeader }).select('_id');
+          if (userDoc) {
+            attachedUserId = userDoc._id;
+            prediction.userId = userDoc._id;
+          }
+        } catch (e) {
+          console.warn('Could not resolve Clerk user for prediction:', e.message);
         }
-      } catch (e) {
-        console.warn('Could not resolve Clerk user for prediction:', e.message);
       }
-    }
 
-    // Save prediction to database
-    const savedPrediction = await prediction.save();
+      // Save prediction to database
+      savedPrediction = await prediction.save();
 
-    // If we attached a user, atomically increment their counters
-    if (attachedUserId) {
-      try {
-        await User.findByIdAndUpdate(attachedUserId, {
-          $inc: { 'stats.totalPredictions': 1 },
-          $set: { 'stats.lastActive': new Date() }
-        });
-      } catch (e) {
-        console.warn('Failed to increment user stats after prediction:', e.message);
+      // If we attached a user, atomically increment their counters
+      if (attachedUserId) {
+        try {
+          await User.findByIdAndUpdate(attachedUserId, {
+            $inc: { 'stats.totalPredictions': 1 },
+            $set: { 'stats.lastActive': new Date() }
+          });
+        } catch (e) {
+          console.warn('Failed to increment user stats after prediction:', e.message);
+        }
       }
     }
 
@@ -159,15 +168,18 @@ export const predictBreed = asyncHandler(async (req, res) => {
     const response = {
       success: true,
       data: {
-        predictionId: savedPrediction._id,
+        predictionId: savedPrediction?._id || null,
         breed: breed,
         confidence: confidence,
         confidencePercentage: Math.round(confidence * 100 * 100) / 100,
         species: mappedSpecies,
         inferenceTime: inference_time_ms,
-        timestamp: savedPrediction.createdAt,
+        timestamp: savedPrediction?.createdAt || new Date(),
         breedInfo: primaryBreedInfo,
-        topPredictions: enrichedTop
+        topPredictions: enrichedTop,
+        saved: saveToDb,
+        // Include prediction data for later saving if not saved
+        ...(!saveToDb && { unsavedPredictionData: predictionData })
       },
       message: `Prediction completed with ${Math.round(confidence * 100)}% confidence`
     };
@@ -263,6 +275,64 @@ export const getModelHealth = asyncHandler(async (req, res) => {
         modelStatus: 'offline',
         error: error.message
       }
+    });
+  }
+});
+
+// @desc    Save a previously unpersisted prediction
+// @route   POST /api/predictions/save
+// @access  Public (requires clerkId)
+export const savePrediction = asyncHandler(async (req, res) => {
+  const { predictionData, clerkId } = req.body;
+
+  if (!predictionData || !clerkId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Prediction data and Clerk ID are required'
+    });
+  }
+
+  try {
+    // Find user
+    const user = await User.findOne({ clerkId });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found. Please register first.'
+      });
+    }
+
+    // Create and save prediction
+    const prediction = new Prediction({
+      ...predictionData,
+      userId: user._id
+    });
+
+    const savedPrediction = await prediction.save();
+
+    // Increment user stats
+    await User.findByIdAndUpdate(user._id, {
+      $inc: { 'stats.totalPredictions': 1 },
+      $set: { 'stats.lastActive': new Date() }
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        predictionId: savedPrediction._id,
+        breed: savedPrediction.predictedBreed,
+        confidence: savedPrediction.confidence,
+        timestamp: savedPrediction.createdAt
+      },
+      message: 'Prediction saved successfully'
+    });
+  } catch (error) {
+    console.error('Save prediction error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save prediction',
+      error: error.message
     });
   }
 });

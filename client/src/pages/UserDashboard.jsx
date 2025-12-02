@@ -1,14 +1,42 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import CameraCapture from '../components/ui/CameraCapture';
 import Sidebar from '../components/layout/Sidebar';
+import { userAPI, handleAPIError } from '../services/api';
+import { formatRelativeTime } from '../utils/date';
 
 const UserDashboard = ({ onImageUpload }) => {
   const { user } = useUser();
   const [dragOver, setDragOver] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const fileInputRef = useRef(null);
+
+  // Fetch analytics data
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoadingAnalytics(true);
+        const response = await userAPI.getAnalytics(user.id);
+        
+        if (response.success) {
+          setAnalytics(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+        const errorInfo = handleAPIError(error);
+        console.error(errorInfo.message);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [user?.id]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -124,83 +152,105 @@ const UserDashboard = ({ onImageUpload }) => {
               {/* Section: At a Glance */}
               <div className="flex flex-col">
                 <h2 className="text-gray-800 text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">At a Glance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Stat Card: Total Analyses */}
-                  <div className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center size-12 rounded-full bg-green-100">
-                        <span className="material-symbols-outlined text-green-600 text-3xl">analytics</span>
+                {loadingAnalytics ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50 animate-pulse">
+                        <div className="flex items-center gap-4">
+                          <div className="size-12 rounded-full bg-gray-200"></div>
+                          <div className="flex flex-col gap-2 flex-1">
+                            <div className="h-4 bg-gray-200 rounded w-24"></div>
+                            <div className="h-8 bg-gray-200 rounded w-16"></div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium text-gray-600">Total Analyses</p>
-                        <p className="text-3xl font-bold text-gray-800">1,204</p>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Stat Card: Total Analyses */}
+                    <div className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center size-12 rounded-full bg-green-100">
+                          <span className="material-symbols-outlined text-green-600 text-3xl">analytics</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-sm font-medium text-gray-600">Total Analyses</p>
+                          <p className="text-3xl font-bold text-gray-800">
+                            {analytics?.totalAnalyses?.toLocaleString() || '0'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Stat Card: Unique Breeds */}
+                    <div className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center size-12 rounded-full bg-green-100">
+                          <span className="material-symbols-outlined text-green-600 text-3xl">cruelty_free</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-sm font-medium text-gray-600">Unique Breeds</p>
+                          <p className="text-3xl font-bold text-gray-800">
+                            {analytics?.uniqueBreeds || '0'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Stat Card: Accuracy Rate */}
+                    <div className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center size-12 rounded-full bg-green-100">
+                          <span className="material-symbols-outlined text-green-600 text-3xl">verified</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-sm font-medium text-gray-600">Accuracy Rate</p>
+                          <p className="text-3xl font-bold text-gray-800">
+                            {analytics?.accuracyRate ? `${analytics.accuracyRate.toFixed(1)}%` : '0%'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  {/* Stat Card: Unique Breeds */}
-                  <div className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center size-12 rounded-full bg-green-100">
-                        <span className="material-symbols-outlined text-green-600 text-3xl">cruelty_free</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium text-gray-600">Unique Breeds</p>
-                        <p className="text-3xl font-bold text-gray-800">32</p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Stat Card: Accuracy Rate */}
-                  <div className="flex flex-col gap-4 p-6 rounded-xl bg-gray-50">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center size-12 rounded-full bg-green-100">
-                        <span className="material-symbols-outlined text-green-600 text-3xl">verified</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium text-gray-600">Accuracy Rate</p>
-                        <p className="text-3xl font-bold text-gray-800">94.6%</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Section: Recent Recognitions */}
               <div className="flex flex-col">
                 <h2 className="text-gray-800 text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Recent Recognitions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Recognition Card 1 */}
-                  <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50">
-                    <div className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBlUETouC4Oh6Ya585AHr0f5jkBRtAr60sONWX63uc2EPZMBA9YdXbZRl1PXc8nLEruUrGbhBO10yM9pkKCy3BqDEW6j4Fhu5x08UJzDB7Nw1MiM4s0St9qA26CuP0LXiY9Gf_e4KgON90_ClR2T1aRafXCoSuUI0qOqzPUke5hdVWhoVMoasyOKu_W3lMnOM6fmJlxOjNW6bz6DLrDNjPrVWWfFcRTQFFTT3AEYODGrPWGSrdqdzjf3XOiVZlvb9ZbXjS5I5ZxWGxz")' }}></div>
-                    <div className="flex flex-col">
-                      <h3 className="text-base font-bold text-gray-800">Holstein Friesian</h3>
-                      <p className="text-sm text-gray-600">2 hours ago</p>
-                    </div>
+                {loadingAnalytics ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 animate-pulse">
+                        <div className="aspect-[4/3] bg-gray-200 rounded-lg"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    ))}
                   </div>
-                  {/* Recognition Card 2 */}
-                  <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50">
-                    <div className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAoacR1GQ7CJC_T9qDcTFiVVNQ1BIrrzINFwBCXn7J0cmEsz5Q7eCoUFQnnWc2zchHFicDnTccpC_o7neYOGJcQNqhxnslmJCd_RNTneyKQeXShOS5fRQKH0kjp_qWL_MFpFEhvdd3SX3CxALqFZy1T60Bn_n4ODSm6TbSVAVEkG4W6SMrMl4vtRWg9fZwGgRYNM5dp93JXWSA2BDHMjoNMTIysmYCFJXI9uoQOMv91i1PrLowPIsbPdIgSgbItxPIbt3dBI2-KTfiF")' }}></div>
-                    <div className="flex flex-col">
-                      <h3 className="text-base font-bold text-gray-800">Murrah Buffalo</h3>
-                      <p className="text-sm text-gray-600">5 hours ago</p>
-                    </div>
+                ) : analytics?.recentRecognitions && analytics.recentRecognitions.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {analytics.recentRecognitions.map((recognition, index) => (
+                      <div key={index} className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50">
+                        <div 
+                          className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" 
+                          style={{ 
+                            backgroundImage: `url("${recognition.breedImage || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(recognition.breed)}")` 
+                          }}
+                        ></div>
+                        <div className="flex flex-col">
+                          <h3 className="text-base font-bold text-gray-800">{recognition.breed}</h3>
+                          <p className="text-sm text-gray-600">
+                            {formatRelativeTime(recognition.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  {/* Recognition Card 3 */}
-                  <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50">
-                    <div className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAt3yrnmAY4MmyRebZMrj_6PkmXFOjXUtq0EfBKQpH6JZ4Ky6I0cPriW7KzwzwpNvhcUV9zxj5i827d360FlRqQGxesiaeWjeq7ueylqNUhh7O3CFWrLdrMf-KxGaHfVFenIGvygvbLJVW7s4dOAeXDAGEoMMFrGRp7Y-Cy--FTRW4iWEyNOG6ZlCiqBzoMKZP3yGpJjlKlKECq891MS9KPDlETNWZcScQgCZM7PkUNIMPYe9zV2Ot0bwB5d802GFbamElYC-ZVwLYp")' }}></div>
-                    <div className="flex flex-col">
-                      <h3 className="text-base font-bold text-gray-800">Gir Cow</h3>
-                      <p className="text-sm text-gray-600">Yesterday</p>
-                    </div>
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl">
+                    <p className="text-gray-500">No recent recognitions yet. Upload an image to get started!</p>
                   </div>
-                  {/* Recognition Card 4 */}
-                  <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50">
-                    <div className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCmm1sfTCiW3-dvsjLP8v6euMgziepOA9Mh1ebcUYZsG5mesJUcrL2TgR8_Vhex39DrcYRmnEU7Nb59g2eNdWcpIHy6E9O3b_OPgryzrq0-K7SlHDzTKDQ9VvzLi2Ykajn3EKKfLof4r24M6uhinS7hrxFxwq8NNDX6OZ2tHWYmObF1RMrZjQUqPex2wfCiXO5mDgoswDddG96oBpQHl4cx3gcEDjkchmieSLG26Wdj5tRmFKPX2EdYZ9YBqrvTPciGqOmumf-Le49t")' }}></div>
-                    <div className="flex flex-col">
-                      <h3 className="text-base font-bold text-gray-800">Sahiwal</h3>
-                      <p className="text-sm text-gray-600">2 days ago</p>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

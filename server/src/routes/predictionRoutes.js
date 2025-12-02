@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   predictBreed, 
   getPrediction, 
-  getModelHealth 
+  getModelHealth,
+  savePrediction
 } from '../controllers/predictionController.js';
 import { uploadSingle, handleUploadError, validateImageUpload } from '../middleware/upload.js';
 
@@ -17,6 +18,11 @@ router.post('/',
   validateImageUpload,
   predictBreed
 );
+
+// @route   POST /api/predict/save
+// @desc    Save a previously unpersisted prediction
+// @access  Public
+router.post('/save', savePrediction);
 
 // @route   GET /api/predict/health
 // @desc    Check ML model service health

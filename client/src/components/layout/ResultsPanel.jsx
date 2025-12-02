@@ -7,7 +7,9 @@ const ResultsPanel = ({
   imageUrl, 
   onSave, 
   onShare, 
-  onDownload
+  onDownload,
+  isSaved = false,
+  isSaving = false
 }) => {
   const navigate = useNavigate();
 
@@ -82,9 +84,18 @@ const ResultsPanel = ({
           <div className="flex flex-col sm:flex-row items-center gap-4 mt-10 pt-6 border-t border-gray-200">
             <button 
               onClick={onSave}
-              className="w-full sm:w-auto flex-1 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-opacity-90 transition-colors"
+              disabled={isSaved || isSaving}
+              className={`w-full sm:w-auto flex-1 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 text-base font-bold leading-normal tracking-[0.015em] transition-colors ${
+                isSaved 
+                  ? 'bg-green-500 text-white cursor-not-allowed' 
+                  : isSaving
+                  ? 'bg-gray-400 text-white cursor-wait'
+                  : 'bg-primary text-white hover:bg-opacity-90'
+              }`}
             >
-              <span className="truncate">Save Result</span>
+              <span className="truncate">
+                {isSaved ? '✓ Saved' : isSaving ? 'Saving...' : 'Save Result'}
+              </span>
             </button>
             <button 
               onClick={() => navigate('/')}

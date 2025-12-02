@@ -40,7 +40,7 @@ api.interceptors.response.use(
 // Prediction API
 export const predictionAPI = {
   // Upload image for breed prediction
-  predict: async (imageFile, onProgress, clerkId) => {
+  predict: async (imageFile, onProgress, clerkId, saveToDb = true) => {
     const formData = new FormData();
     formData.append('image', imageFile);
 
@@ -48,6 +48,9 @@ export const predictionAPI = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      params: {
+        saveToDb: saveToDb.toString()
+      }
     };
 
     if (clerkId) {
@@ -62,6 +65,15 @@ export const predictionAPI = {
     }
 
     const response = await api.post('/predict', formData, config);
+    return response.data;
+  },
+
+  // Save a previously unpersisted prediction
+  savePrediction: async (predictionData, clerkId) => {
+    const response = await api.post('/predict/save', {
+      predictionData,
+      clerkId
+    });
     return response.data;
   },
 
@@ -276,6 +288,20 @@ export const userAPI = {
       };
     } catch (error) {
       console.error('Get user stats error:', error);
+      throw error;
+    }
+  },
+
+  // Get user analytics for dashboard
+  getAnalytics: async (clerkId) => {
+    try {
+      const response = await api.get(`/users/analytics/${clerkId}`);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error) {
+      console.error('Get user analytics error:', error);
       throw error;
     }
   },
