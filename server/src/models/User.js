@@ -82,36 +82,36 @@ userSchema.index({ role: 1 });
 // Static method to find or create user from Clerk data
 userSchema.statics.findOrCreateFromClerk = async function(clerkUser) {
   try {
-    let user = await this.findOne({ clerkId: clerkUser.id });
-    
-    if (!user) {
-      // Create new user from Clerk data
-      const userData = {
-        clerkId: clerkUser.id,
-        email: clerkUser.emailAddresses?.[0]?.emailAddress,
-        firstName: clerkUser.firstName,
-        lastName: clerkUser.lastName,
-        name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
-        imageUrl: clerkUser.imageUrl,
-        metadata: {
-          signUpProvider: clerkUser.externalAccounts?.length > 0 ? 'oauth' : 'email',
-          lastLoginAt: new Date()
-        }
-      };
-      
-      user = new this(userData);
-      await user.save();
-    } else {
-      // Update existing user with latest Clerk data
-      user.email = clerkUser.emailAddresses?.[0]?.emailAddress || user.email;
-      user.firstName = clerkUser.firstName || user.firstName;
-      user.lastName = clerkUser.lastName || user.lastName;
-      user.name = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || user.name;
-      user.imageUrl = clerkUser.imageUrl || user.imageUrl;
-      user.metadata.lastLoginAt = new Date();
-      
-      await user.save();
-    }
+    const updateData = {
+      email: clerkUser.emailAddresses?.[0]?.emailAddress,
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+      imageUrl: clerkUser.imageUrl,
+      'metadata.lastLoginAt': new Date()
+    };
+
+    // If it's a new user, set these fields (using $setOnInsert)
+    // We calculate these outside to keep the update query clean
+    const setOnInsert = {
+      clerkId: clerkUser.id,
+      'metadata.signUpProvider': clerkUser.externalAccounts?.length > 0 ? 'oauth' : 'email',
+      'stats.totalPredictions': 0,
+      'stats.lastActive': new Date()
+    };
+
+    const user = await this.findOneAndUpdate(
+      { clerkId: clerkUser.id },
+      {
+        $set: updateData,
+        $setOnInsert: setOnInsert
+      },
+      {
+        new: true,   // Return the modified document
+        upsert: true, // Create if not exists
+        runValidators: true
+      }
+    );
     
     return user;
   } catch (error) {

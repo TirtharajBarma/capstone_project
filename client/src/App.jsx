@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { SignedOut } from '@clerk/clerk-react';
 import Navigation from './components/layout/Navigation';
@@ -20,9 +20,19 @@ function App() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const currentImageUrlRef = useRef(null);
 
   // User synchronization hook
   const { user } = useUserSync();
+
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (currentImageUrlRef.current) {
+        URL.revokeObjectURL(currentImageUrlRef.current);
+      }
+    };
+  }, []);
 
   const handleImageUpload = async (file) => {
     try {
@@ -32,8 +42,15 @@ function App() {
       setIsLoading(true);
       setError(null);
       
-      // Create image URL for preview
+      // Cleanup previous image URL if it exists
+      if (currentImageUrlRef.current) {
+        URL.revokeObjectURL(currentImageUrlRef.current);
+        currentImageUrlRef.current = null;
+      }
+
+      // Create new image URL for preview
       const imgUrl = utils.createImageURL(file);
+      currentImageUrlRef.current = imgUrl;
 
       // Determine if user is authenticated
       const isAuthenticated = !!user?.id;
@@ -79,6 +96,12 @@ function App() {
       console.error('Prediction error:', error);
       const errorInfo = handleAPIError(error);
       setError(errorInfo.message);
+
+      // Cleanup URL on error since we won't navigate
+      if (currentImageUrlRef.current) {
+        URL.revokeObjectURL(currentImageUrlRef.current);
+        currentImageUrlRef.current = null;
+      }
     } finally {
       setIsLoading(false);
     }
