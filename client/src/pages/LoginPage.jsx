@@ -3,31 +3,15 @@ import { SignIn } from '@clerk/clerk-react';
 
 const LoginPage = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back to BreedVision
-          </h2>
-          <p className="text-gray-600">
-            Sign in to access your livestock breed recognition dashboard
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg rounded-xl sm:px-10">
-          <SignIn 
-            appearance={{
-              elements: {
-                formButtonPrimary: 'bg-gray-900 hover:bg-gray-800 text-white',
-                footerActionLink: 'text-indigo-600 hover:text-indigo-500'
-              }
-            }}
-            redirectUrl="/"
-            signUpUrl="/register"
-          />
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-md">
+        <SignIn 
+          redirectUrl="/dashboard"
+          afterSignInUrl="/dashboard"
+          routing="path"
+          path="/login"
+          signUpUrl="/register"
+        />
       </div>
     </div>
   );

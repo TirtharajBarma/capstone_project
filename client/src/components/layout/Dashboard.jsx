@@ -1,15 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, ImageIcon, ArrowRight, X, Zap, CheckCircle, Heart } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import CameraCapture from '../ui/CameraCapture';
 
-const Dashboard = ({ onImageUpload, isLoading = false }) => {
+const Dashboard = ({ onImageUpload, isLoading, error }) => {
   const [dragOver, setDragOver] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [stream, setStream] = useState(null);
   const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -24,10 +20,8 @@ const Dashboard = ({ onImageUpload, isLoading = false }) => {
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    
     const files = Array.from(e.dataTransfer.files);
     const imageFile = files.find(file => file.type.startsWith('image/'));
-    
     if (imageFile) {
       handleImageSelection(imageFile);
     }
@@ -42,294 +36,161 @@ const Dashboard = ({ onImageUpload, isLoading = false }) => {
 
   const handleImageSelection = (file) => {
     setSelectedImage(file);
-    if (onImageUpload) {
-      onImageUpload(file);
-    }
   };
 
-  const handleCameraClick = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment' // Use back camera on mobile
-        } 
-      });
-      setStream(mediaStream);
-      setShowCamera(true);
-      
-      // Set video stream
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      }, 100);
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      // Fallback to file input on error
-      if (cameraInputRef.current) {
-        cameraInputRef.current.click();
-      }
-    }
-  };
-
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-      
-      canvas.toBlob((blob) => {
-        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-        handleImageSelection(file);
-        closeCamera();
-      }, 'image/jpeg', 0.8);
-    }
-  };
-
-  const closeCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
+  const handleCameraCapture = (file) => {
+    handleImageSelection(file);
     setShowCamera(false);
   };
 
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const handleAnalyze = () => {
+    if (selectedImage && onImageUpload) {
+      onImageUpload(selectedImage);
     }
   };
 
-  const supportedBreeds = [
-    'Gir', 'Holstein Friesian', 'Sahiwal', 'Red Sindhi',
-    'Murrah', 'Jaffarabadi', 'Surti', 'Mehsana'
-  ];
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+  };
 
-  // Cleanup camera stream when component unmounts
-  useEffect(() => {
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [stream]);
+  // Determine current state
+  let currentState = 'default';
+  if (isLoading) currentState = 'loading';
+  else if (error) currentState = 'error';
+  else if (selectedImage) currentState = 'selected';
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Camera Modal */}
+    <div className="w-full max-w-4xl">
       {showCamera && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Take Picture</h3>
-              <button 
-                onClick={closeCamera}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            
-            <div className="relative">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full h-64 bg-gray-900 rounded-lg object-cover"
-              />
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-            
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={capturePhoto}
-                className="btn-primary flex-1 hover:shadow-lg hover:scale-105 transition-transform"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Capture</span>
-              </button>
-              <button
-                onClick={closeCamera}
-                className="btn-secondary flex-1"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <CameraCapture 
+          onCapture={handleCameraCapture} 
+          onClose={() => setShowCamera(false)} 
+        />
       )}
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-gray-900 rounded-xl flex items-center justify-center mx-auto mb-4 animate-fade-in">
-            <Camera className="w-8 h-8 text-white" />
-          </div>
-          
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 animate-fade-in">
-            BreedVision AI
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <h1 className="text-4xl font-black tracking-tighter text-custom-text sm:text-5xl md:text-6xl">
+            Instantly Identify Cow & Buffalo Breeds
           </h1>
-          <p className="text-lg text-gray-600 mb-4 max-w-2xl mx-auto animate-fade-in">
-            Advanced cattle and buffalo breed recognition powered by artificial intelligence
+          <p className="max-w-2xl text-base font-normal text-gray-600 sm:text-lg">
+            Our advanced recognition tool helps you discover the breed of cattle with a single photo. Simple, fast, and accurate—empowering farmers and enthusiasts alike.
           </p>
-          
-          <div className="flex flex-wrap justify-center items-center gap-4 text-sm text-gray-500 animate-fade-in">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-              Instant Recognition
-            </span>
-            <span>•</span>
-            <span>95%+ Accuracy</span>
-            <span>•</span>
-            <span>11+ Breeds Supported</span>
-          </div>
         </div>
 
-        <div className="mt-4 grid lg:grid-cols-5 gap-6">
-          {/* Upload Section */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="bg-gradient-to-br from-gray-50 to-blue-50 shadow-md rounded-xl p-8 animate-fade-in h-full">
-              {/* Upload Area */}
-              <div
-                className={`upload-area ${dragOver ? 'drag-over' : ''} ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={handleUploadClick}
-              >
-                <div className="w-16 h-16 bg-gray-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <ImageIcon className="w-8 h-8 text-white" />
-                </div>
-                
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Drop your image here
-                </h3>
-                <p className="text-gray-600 mb-1">
-                  or click to browse files
-                </p>
-                <p className="text-sm text-gray-500 mb-2">
-                  Supports JPEG, PNG up to 5MB
-                </p>
-                <p className="text-sm text-indigo-600 font-medium">
-                  Get instant breed identification in seconds.
-                </p>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  disabled={isLoading}
+        {/* State: Default (Upload) */}
+        {currentState === 'default' && (
+          <div 
+            className={`w-full max-w-2xl transition-all duration-200 ${dragOver ? 'scale-[1.02] ring-2 ring-custom-teal' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex flex-col items-center gap-6 rounded-xl border-2 border-dashed border-gray-300 bg-white/50 px-6 py-10 shadow-sm">
+              <span className="material-symbols-outlined text-5xl text-gray-400">upload_file</span>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-lg font-bold text-custom-text">Drag & Drop an Image Here</p>
+                <p className="text-sm text-gray-500">Supported formats: JPG, PNG. Max file size: 10MB.</p>
+              </div>
+              <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleFileSelect} 
                 />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <button
-                  onClick={handleUploadClick}
-                  disabled={isLoading}
-                  className="btn-primary hover:shadow-lg hover:scale-105 transition-transform"
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-custom-teal px-6 text-sm font-bold text-white shadow-sm hover:bg-opacity-90 sm:w-auto"
                 >
-                  <Upload className="w-5 h-5" />
-                  <span>Upload Photo</span>
+                  <span className="truncate">Choose File</span>
                 </button>
                 
-                <button
-                  onClick={handleCameraClick}
-                  disabled={isLoading}
-                  className="btn-secondary hover:shadow-lg hover:scale-105 transition-transform"
+                <span className="hidden text-sm text-gray-500 sm:block">or</span>
+                
+                <button 
+                  onClick={() => setShowCamera(true)}
+                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-gray-100 px-6 text-sm font-bold text-custom-text hover:bg-gray-200 sm:w-auto"
                 >
-                  <Camera className="w-5 h-5" />
-                  <span>Take Picture</span>
+                  <span className="material-symbols-outlined text-xl">photo_camera</span>
+                  <span>Use Camera</span>
                 </button>
               </div>
-
-              {/* Camera input for mobile devices - fallback */}
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isLoading}
-              />
             </div>
           </div>
+        )}
 
-          {/* Info Section */}
-          <div className="lg:col-span-2 space-y-6 flex flex-col">
-            {/* Stats */}
-            <div className="bg-gradient-to-br from-gray-50 to-indigo-50 shadow-md rounded-xl p-4 animate-fade-in">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                AI Recognition Stats
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-3 bg-white shadow-sm rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">11+</div>
-                  <div className="text-gray-600 text-sm">Breeds Supported</div>
+        {/* State: Selected (Preview) */}
+        {currentState === 'selected' && (
+          <div className="w-full max-w-2xl flex flex-col gap-6">
+            <div className="flex flex-col">
+              <h3 className="px-1 pb-2 pt-0 text-lg font-bold tracking-tight text-custom-text text-left">Image Preview</h3>
+              <div className="flex flex-col items-center gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:flex-row">
+                <div className="aspect-video w-full max-w-xs flex-shrink-0 overflow-hidden rounded-md bg-gray-100 sm:w-40">
+                  <img 
+                    className="h-full w-full object-cover" 
+                    src={URL.createObjectURL(selectedImage)} 
+                    alt="Preview" 
+                  />
                 </div>
-                <div className="text-center p-3 bg-white shadow-sm rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">95%</div>
-                  <div className="text-gray-600 text-sm">Accuracy Rate</div>
+                <div className="flex flex-grow flex-col text-center sm:text-left">
+                  <p className="font-semibold text-custom-text truncate max-w-[200px]">{selectedImage.name}</p>
+                  <p className="text-sm text-gray-500">{(selectedImage.size / (1024 * 1024)).toFixed(2)} MB</p>
                 </div>
+                <button 
+                  onClick={handleRemoveImage}
+                  className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-gray-100 px-4 text-sm font-medium text-custom-text hover:bg-gray-200 sm:w-auto"
+                >
+                  <span className="material-symbols-outlined text-xl">delete</span>
+                  <span className="truncate">Remove</span>
+                </button>
               </div>
             </div>
+            <div className="flex justify-center">
+                <button 
+                  onClick={handleAnalyze}
+                  className="flex h-12 min-w-[84px] w-full max-w-md cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-custom-teal px-6 text-base font-bold tracking-wide text-white shadow-md hover:bg-opacity-90"
+                >
+                  <span className="truncate">Analyze Breed</span>
+                </button>
+              </div>
+          </div>
+        )}
 
-            {/* Supported Breeds */}
-            <div className="bg-gradient-to-br from-gray-50 to-blue-50 shadow-md rounded-xl p-4 animate-fade-in flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                Supported Breeds
-              </h3>
-              <div className="grid grid-cols-1 gap-1.5">
-                {supportedBreeds.map((breed) => (
-                  <div key={breed} className="flex items-center space-x-2">
-                    <ArrowRight className="w-3 h-3 text-indigo-500" />
-                    <span className="text-gray-700 text-sm">{breed}</span>
-                  </div>
-                ))}
+        {/* State: Loading */}
+        {currentState === 'loading' && (
+          <div className="w-full max-w-2xl flex flex-col gap-6">
+            <div className="flex flex-col items-center gap-6 rounded-xl border border-gray-200 bg-white px-6 py-14 text-center shadow-sm">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-custom-teal border-t-transparent"></div>
+              <div className="flex max-w-md flex-col items-center gap-2">
+                <p className="text-lg font-bold text-custom-text">Analyzing Image...</p>
+                <p className="text-sm text-gray-500">Please wait while we identify the breed. This may take a moment.</p>
+              </div>
+              <div className="mt-4 w-full max-w-sm rounded-full bg-gray-200 h-2.5">
+                <div className="bg-custom-teal h-2.5 rounded-full" style={{ width: '45%' }}></div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Result Preview Section - Full Width */}
-        <div className="mt-12">
-          <div className="bg-gradient-to-br from-gray-50 to-indigo-50 border border-gray-200 shadow-lg rounded-xl p-8 animate-fade-in">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">Result Preview</h3>
-            {selectedImage ? (
-              <div className="flex items-center justify-center space-x-6">
-                <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <ImageIcon className="w-8 h-8 text-gray-600" />
-                </div>
-                <div className="text-center">
-                  <p className="font-medium text-gray-900 mb-1">
-                    {selectedImage.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {(selectedImage.size / 1024 / 1024).toFixed(2)} MB • Ready for analysis
-                  </p>
-                </div>
-                <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+        {/* State: Error */}
+        {currentState === 'error' && (
+          <div className="w-full max-w-2xl flex flex-col gap-4">
+            <div className="flex flex-col items-center gap-6 rounded-xl border-2 border-dashed border-custom-error/50 bg-custom-error/5 px-6 py-14 text-center shadow-sm">
+              <span className="material-symbols-outlined text-5xl text-custom-error">error</span>
+              <div className="flex max-w-md flex-col items-center gap-2">
+                <p className="text-lg font-bold text-custom-text">Upload Failed</p>
+                <p className="text-sm text-gray-600">{error || "The selected file is not a supported format. Please upload a JPG or PNG file under 10MB."}</p>
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <ImageIcon className="w-8 h-8 text-gray-400" />
-                </div>
-                <p className="text-gray-500 text-lg">Your result will appear here.</p>
-                <p className="text-gray-400 text-sm mt-1">Upload an image to get started</p>
-              </div>
-            )}
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="flex h-10 min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-custom-error px-4 text-sm font-bold text-white hover:bg-custom-error/90"
+              >
+                <span className="truncate">Try Again</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

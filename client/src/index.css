@@ -1,209 +1,152 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@theme {
+  --color-primary: #084887;
+  --color-secondary: #F58A07;
+  --color-accent: #F9AB55;
+  --color-background-light: #F7F5FB;
+  --color-background-dark: #0a0a0f;
+  --color-text-neutral: #909CC2;
+  --color-custom-teal: #1A535C;
+  --color-custom-coral: #FF6B6B;
+  --color-custom-background: #F7F7F7;
+  --color-custom-text: #171717;
+  --color-custom-success: #4CAF50;
+  --color-custom-error: #D32F2F;
+
+  --font-display: "Space Grotesk", sans-serif;
+
+  --radius: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+}
 
 @layer base {
-  * {
-    border-color: rgb(229 231 235);
-  }
-  
   body {
-    background: #ffffff;
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-    min-height: 100vh;
-    color: #111827;
-    line-height: 1.6;
-  }
-  
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* Custom scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: #f1f1f1;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: #111827;
-  }
-  
-  /* Firefox scrollbar */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: #374151 #f1f1f1;
-  }
-  
-  #root {
-    min-height: 100vh;
-  }
-
-  /* Clerk Modal Styling - Fix Overlapping Issues */
-  .cl-modalBackdrop {
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(4px) !important;
-    z-index: 9999 !important;
-  }
-  
-  .cl-modal {
-    z-index: 10000 !important;
-  }
-  
-  .cl-modalContent {
-    border-radius: 12px !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-    max-width: 400px !important;
-    width: 90% !important;
-    margin: 0 auto !important;
-  }
-
-  /* Ensure modals appear above everything */
-  [data-clerk-modal] {
-    z-index: 9999 !important;
+    @apply font-display bg-background-light text-gray-800;
   }
 }
 
 @layer components {
-  .btn-primary {
-    background: #111827;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    border: 2px solid #111827;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+  .material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
   }
-  
-  .btn-primary:hover {
-    background: #374151;
-    border-color: #374151;
+}
+
+@layer components {
+  /* Material 3 Buttons */
+  .btn-filled {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-md active:shadow-none disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+  }
+  .btn-filled:hover {
+    opacity: 0.9;
     transform: translateY(-1px);
   }
-  
-  .btn-secondary {
-    background: white;
-    color: #111827;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    border: 2px solid #e5e7eb;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+
+  .btn-outlined {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium border transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
+    border-color: var(--md-sys-color-outline);
+    color: var(--md-sys-color-primary);
   }
-  
-  .btn-secondary:hover {
-    border-color: #111827;
-    transform: translateY(-1px);
+  .btn-outlined:hover {
+    background-color: var(--md-sys-color-secondary-container);
   }
-  
-  .card {
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    transition: all 0.2s ease;
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium transition-colors duration-200;
+    color: var(--md-sys-color-on-surface);
   }
-  
-  .card:hover {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    transform: translateY(-1px);
+  .btn-ghost:hover {
+    background-color: var(--md-sys-color-secondary-container);
   }
-  
+
+  /* Material 3 Cards */
+  .card-elevated {
+    @apply rounded-3xl p-6 transition-all duration-300;
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  }
+  .dark .card-elevated {
+    background-color: var(--md-sys-color-surface-variant);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .card-outlined {
+    @apply rounded-3xl p-6 border transition-all duration-300;
+    background-color: transparent;
+    border-color: var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  /* Navigation */
+  .navbar-material {
+    @apply sticky top-0 z-50 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-300;
+  }
+
+  .nav-link {
+    @apply relative px-4 py-2 text-sm font-medium rounded-full transition-colors duration-200;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .nav-link:hover, .nav-link.active {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  /* Upload Area */
   .upload-area {
-    border: 2px dashed #d1d5db;
-    background: #f9fafb;
-    border-radius: 12px;
-    padding: 48px 24px;
-    text-align: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
+    @apply relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 cursor-pointer overflow-hidden;
+    border-color: var(--md-sys-color-outline);
+    background-color: var(--md-sys-color-surface);
   }
-  
-  .upload-area:hover,
-  .upload-area.drag-over {
-    border-color: #111827;
-    background: #f3f4f6;
-  }
-  
-  .navbar-sticky {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #e5e7eb;
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: var(--md-sys-color-primary);
+    background-color: var(--md-sys-color-secondary-container);
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    background: linear-gradient(135deg, #111827, #374151);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  .text-on-surface {
+    color: var(--md-sys-color-on-surface);
+  }
+  .text-on-surface-variant {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  
+  .animate-enter {
+    animation: enter 0.4s cubic-bezier(0.2, 0, 0, 1) forwards;
   }
 }
 
-.loading-dots {
-  display: flex;
-  gap: 4px;
+@keyframes enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
+/* Loading Dots */
+.loading-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
 .loading-dots div {
   width: 8px;
   height: 8px;
-  background: #111827;
+  background-color: var(--md-sys-color-primary);
   border-radius: 50%;
-  animation: pulse 1.5s infinite;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+.loading-dots div:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots div:nth-child(2) { animation-delay: -0.16s; }
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
-.loading-dots div:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.loading-dots div:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-}

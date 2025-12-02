@@ -1,209 +1,54 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Camera, Home, History, BarChart3, Menu, X } from 'lucide-react';
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
 const Navigation = () => {
   const location = useLocation();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/history', label: 'History', icon: History },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-  ];
-
-  const isActive = (path) => location.pathname === path;
+  const isHomePage = location.pathname === '/';
 
   return (
-    <nav className="navbar-sticky">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
-              <Camera className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">BreedVision</h1>
-              <p className="text-xs text-gray-600">AI-Powered Recognition</p>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {/* Home is always clickable */}
-            <Link
-              to="/"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                isActive('/') ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              <span>Home</span>
-            </Link>
-
-            {/* History / Analytics: require sign-in */}
-            <SignedIn>
-              {[{ path: '/history', label: 'History', icon: History }, { path: '/analytics', label: 'Analytics', icon: BarChart3 }].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                      isActive(item.path) ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </SignedIn>
-            <SignedOut>
-              {[{ label: 'History', icon: History }, { label: 'Analytics', icon: BarChart3 }].map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <SignInButton key={idx} mode="modal">
-                    <button
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 text-gray-700 hover:bg-gray-100"
-                      title="Login to access"
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </button>
-                  </SignInButton>
-                );
-              })}
-            </SignedOut>
+    <div className="flex justify-center w-full px-4 md:px-10 lg:px-20 xl:px-40">
+      <header className="w-full max-w-6xl flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-gray-700 py-4 bg-white">
+        <div className="flex items-center gap-4 text-primary">
+          <div className="size-6">
+            <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 8v-2c0-1.103-.897-2-2-2h-4c-1.103 0-2 .897-2 2v2h-2.586l-2.707 2.707a1 1 0 0 0 .707 1.707h2.586v3.586a1 1 0 0 0 1.707.707l2.707-2.707v-2.586h2v2.586l2.707 2.707a1 1 0 0 0 1.707-.707v-3.586h2.586a1 1 0 0 0 .707-1.707l-2.707-2.707h-2.586zm-6-2h4v2h-4v-2zm-3.414 4h10.828l1.293 1.293h-13.414l1.293-1.293zm3.414 3.414v3.293l-1.293 1.293h-1.414v-4.586h2.707zm4 0h2.707v4.586h-1.414l-1.293-1.293v-3.293z"></path></svg>
           </div>
-
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-3">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="flex items-center space-x-2 text-gray-700 transition duration-200 px-3 py-2 text-sm font-medium hover:text-indigo-600">
-                  <span>Login</span>
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="btn-primary text-sm">
-                  <span>Sign Up</span>
-                </button>
-              </SignUpButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton 
-                appearance={{
-                  elements: {
-                    avatarBox: "w-10 h-10",
-                    userButtonPopoverCard: "shadow-2xl",
-                    userButtonPopoverActions: "bg-white"
-                  }
-                }}
-              />
-            </SignedIn>
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-xl text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-all duration-200 transform active:scale-95"
-          >
-            {isMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          <Link to="/" className="text-xl font-bold leading-tight tracking-[-0.015em] text-gray-900">Breed Recognizer</Link>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white shadow-lg animate-fade-in">
-            <div className="px-4 pt-4 pb-6 space-y-2">
-              {/* Mobile: Home link always */}
-              <Link
-                to="/"
-                onClick={() => setIsMenuOpen(false)}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 ${
-                  isActive('/') ? 'bg-gray-900 text-white shadow-md' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
-                }`}
-              >
-                <Home className="w-5 h-5" />
-                <span>Home</span>
-              </Link>
-
-              {/* Mobile: Guarded links show SignIn modal when logged out */}
-              <SignedIn>
-                {[{ path: '/history', label: 'History', icon: History }, { path: '/analytics', label: 'Analytics', icon: BarChart3 }].map((item, index) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 ${
-                        isActive(item.path) ? 'bg-gray-900 text-white shadow-md' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
-                      }`}
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </SignedIn>
-              <SignedOut>
-                {[{ label: 'History', icon: History }, { label: 'Analytics', icon: BarChart3 }].map((item, index) => {
-                  const Icon = item.icon;
-                  return (
-                    <SignInButton key={index} mode="modal">
-                      <button
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 transform hover:scale-105 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.label}</span>
-                      </button>
-                    </SignInButton>
-                  );
-                })}
-              </SignedOut>
-              
-              <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <button className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-all duration-200 transform hover:scale-105 w-full text-left">
-                      <span className="font-medium">Login</span>
-                    </button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <button className="flex items-center space-x-3 px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 active:bg-gray-700 shadow-md transition-all duration-200 transform hover:scale-105 w-full text-left">
-                      <span className="font-medium">Sign Up</span>
-                    </button>
-                  </SignUpButton>
-                </SignedOut>
-                <SignedIn>
-                  <div className="flex items-center space-x-3 px-4 py-3">
-                    <UserButton 
-                      appearance={{
-                        elements: {
-                          avatarBox: "w-8 h-8"
-                        }
-                      }}
-                    />
-                    <span className="font-medium text-gray-700">My Account</span>
-                  </div>
-                </SignedIn>
-              </div>
+        <div className="hidden md:flex flex-1 justify-end gap-8">
+          {!isHomePage && (
+            <div className="flex items-center gap-9">
+              <Link to="/" className="text-sm font-medium leading-normal text-gray-900 hover:text-primary">Home</Link>
+              <Link to="/history" className="text-sm font-medium leading-normal text-gray-900 hover:text-primary">History</Link>
+              <Link to="/about" className="text-sm font-medium leading-normal text-gray-900 hover:text-primary">About</Link>
             </div>
-          </div>
-        )}
-      </div>
-    </nav>
+          )}
+          
+          <SignedIn>
+            <Link to="/dashboard" className="text-sm font-medium leading-normal text-gray-900 hover:text-primary mr-4">
+              Dashboard
+            </Link>
+            <UserButton 
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10"
+                }
+              }}
+            />
+          </SignedIn>
+          <SignedOut>
+            <Link
+              to="/login"
+              className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-opacity-90 transition-colors"
+            >
+              <span className="truncate">My Account</span>
+            </Link>
+          </SignedOut>
+        </div>
+      </header>
+    </div>
   );
 };
 
