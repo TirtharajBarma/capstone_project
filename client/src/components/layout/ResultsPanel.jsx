@@ -5,9 +5,7 @@ const ResultsPanel = ({
   prediction, 
   breedInfo, 
   imageUrl, 
-  onSave, 
-  onShare, 
-  onDownload,
+  onSave,
   isSaved = false,
   isSaving = false
 }) => {
@@ -66,7 +64,7 @@ const ResultsPanel = ({
             <h3 className="text-lg font-bold text-gray-800 mb-4">Other Possibilities</h3>
             <div className="space-y-3">
               {otherPossibilities.map((item, index) => (
-                <div key={index} className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
+                <div key={item.name || index} className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
                   <span className="font-medium text-gray-700">{item.name}</span>
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-bold text-text-neutral">{item.confidence}%</span>

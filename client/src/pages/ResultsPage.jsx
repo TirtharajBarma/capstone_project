@@ -51,10 +51,10 @@ const ResultsPage = () => {
       if (response.success) {
         setIsSaved(true);
         // Show success message or update UI
-        console.log('Result saved successfully');
+        // Result saved successfully
       }
     } catch (error) {
-      console.error('Save error:', error);
+      // console.error('Save error:', error);
       const errorInfo = handleAPIError(error);
       alert(errorInfo.message);
     } finally {
@@ -72,8 +72,8 @@ const ResultsPage = () => {
           imageUrl={imageUrl} 
           breedInfo={breedInfo}
           onSave={handleSaveResult}
-          onShare={() => console.log('Share')}
-          onDownload={() => console.log('Download')}
+          onShare={() => {}}
+          onDownload={() => {}}
           isSaved={isSaved}
           isSaving={isSaving}
         />

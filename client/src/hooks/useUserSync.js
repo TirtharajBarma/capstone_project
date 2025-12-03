@@ -34,9 +34,9 @@ export const useUserSync = () => {
         const response = await userAPI.syncUser(clerkUserData);
         setDbUser(response.data);
         
-        console.log('User synced successfully:', response.message);
+        // console.log('User synced successfully:', response.message);
       } catch (error) {
-        console.error('Failed to sync user:', error);
+        // console.error('Failed to sync user:', error);
         setError(error.message || 'Failed to sync user data');
       } finally {
         setIsLoading(false);
@@ -55,8 +55,8 @@ export const useUserSync = () => {
       // Refresh user data to get updated stats
       const updatedUser = await userAPI.getProfile(user.id);
       setDbUser(updatedUser.data);
-    } catch (error) {
-      console.error('Failed to increment prediction count:', error);
+    } catch {
+      // console.error('Failed to increment prediction count:', error);
     }
   };
 
@@ -64,14 +64,9 @@ export const useUserSync = () => {
   const updatePreferences = async (preferences) => {
     if (!user?.id) return;
 
-    try {
-      const response = await userAPI.updatePreferences(user.id, preferences);
-      setDbUser(response.data);
-      return response;
-    } catch (error) {
-      console.error('Failed to update preferences:', error);
-      throw error;
-    }
+    const response = await userAPI.updatePreferences(user.id, preferences);
+    setDbUser(response.data);
+    return response;
   };
 
   // Function to get user stats
@@ -81,8 +76,8 @@ export const useUserSync = () => {
     try {
       const response = await userAPI.getStats(user.id);
       return response.data;
-    } catch (error) {
-      console.error('Failed to get user stats:', error);
+    } catch {
+      // console.error('Failed to get user stats:', error);
       return null;
     }
   };
