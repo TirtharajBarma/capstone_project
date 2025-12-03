@@ -21,7 +21,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
       contentType: mimetype
     });
 
-    console.log('Sending image to ML model API...');
+    // Sending image to ML model API...
     
     // Send request to ML model API
     const modelResponse = await axios.post(process.env.MODEL_API_URL, formData, {
@@ -36,7 +36,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
 
     const { breed, confidence, inference_time_ms, species, top_predictions } = modelResponse.data;
 
-    console.log('ML Model Response:', modelResponse.data);
+    // ML Model Response received
 
     if (!breed || confidence === undefined) {
       throw new Error('Invalid response from ML model');
