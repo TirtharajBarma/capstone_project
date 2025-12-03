@@ -35,7 +35,7 @@ export const handleClerkWebhook = async (req, res) => {
         break;
         
       default:
-        console.log(`Unhandled webhook type: ${type}`);
+        console.warn(`Unhandled webhook type: ${type}`);
     }
 
     res.status(200).json({ received: true });
@@ -47,10 +47,10 @@ export const handleClerkWebhook = async (req, res) => {
 
 const handleUserCreated = async (userData) => {
   try {
-    console.log('Creating user from webhook:', userData.id);
+    // Creating user from webhook
     
     const user = await User.findOrCreateFromClerk(userData);
-    console.log('User created successfully:', user._id);
+    // User created successfully
   } catch (error) {
     console.error('Error creating user from webhook:', error);
   }
@@ -58,10 +58,10 @@ const handleUserCreated = async (userData) => {
 
 const handleUserUpdated = async (userData) => {
   try {
-    console.log('Updating user from webhook:', userData.id);
+    // Updating user from webhook
     
     const user = await User.findOrCreateFromClerk(userData);
-    console.log('User updated successfully:', user._id);
+    // User updated successfully
   } catch (error) {
     console.error('Error updating user from webhook:', error);
   }
@@ -69,14 +69,14 @@ const handleUserUpdated = async (userData) => {
 
 const handleUserDeleted = async (userData) => {
   try {
-    console.log('Deleting user from webhook:', userData.id);
+    // Deleting user from webhook
     
     const deletedUser = await User.findOneAndDelete({ clerkId: userData.id });
     
     if (deletedUser) {
-      console.log('User deleted successfully:', deletedUser._id);
+      // User deleted successfully
     } else {
-      console.log('User not found for deletion:', userData.id);
+      // User not found for deletion
     }
   } catch (error) {
     console.error('Error deleting user from webhook:', error);
