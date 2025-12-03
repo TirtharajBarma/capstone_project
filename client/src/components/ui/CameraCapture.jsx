@@ -1,86 +1,91 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 const CameraCapture = ({ onCapture, onClose }) => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const isMounted = useRef(true);
   const [error, setError] = useState(null);
+  const [isReady, setIsReady] = useState(false);
 
-  useEffect(() => {
-    isMounted.current = true;
-    startCamera();
-
-    // Stop camera when tab/window loses visibility (helps desktop cases)
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        stopCamera();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-
-    // Stop camera on page unload
-    const onBeforeUnload = () => stopCamera();
-    window.addEventListener('beforeunload', onBeforeUnload);
-
-    return () => {
-      isMounted.current = false;
-      stopCamera();
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('beforeunload', onBeforeUnload);
-    };
-  }, []);
-
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      
-      if (!isMounted.current) {
-        // Component unmounted while waiting for permission/stream
-        mediaStream.getTracks().forEach(track => track.stop());
-        return;
-      }
-
-      streamRef.current = mediaStream;
-      if (videoRef.current) {
-        const videoEl = videoRef.current;
-        videoEl.srcObject = mediaStream;
-        // Some desktop browsers require muted + explicit play after canplay
-        const tryPlay = async () => {
-          try {
-            await videoEl.play();
-          } catch (playError) {
-            console.error("Error playing video:", playError);
-          }
-        };
-        if (videoEl.readyState >= 2) {
-          tryPlay();
-        } else {
-          const onCanPlay = () => {
-            videoEl.removeEventListener('canplay', onCanPlay);
-            tryPlay();
-          };
-          videoEl.addEventListener('canplay', onCanPlay);
-        }
-      }
-    } catch (err) {
-      if (isMounted.current) {
-        console.error("Error accessing camera:", err);
-        setError("Could not access camera. Please ensure you have granted permission.");
-      }
-    }
-  };
-
-  const stopCamera = () => {
+  // Robust function to stop all tracks and release camera
+  const stopCamera = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => {
+        track.stop(); // This turns off the hardware camera light
+      });
       streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-  };
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    try {
+      // If a stream already exists, stop it first
+      stopCamera();
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      
+      // If component unmounted during the async call, stop immediately
+      if (!isMounted.current) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      streamRef.current = mediaStream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+
+        // Wait for video to be ready before playing to avoid black screen
+        videoRef.current.onloadedmetadata = async () => {
+          if (!isMounted.current || !videoRef.current) return;
+          try {
+            await videoRef.current.play();
+            setIsReady(true);
+          } catch (playError) {
+            console.error("Error playing video preview:", playError);
+            // Retry play if interrupted
+            if (playError.name !== 'AbortError') {
+              setError("Could not start video preview.");
+            }
+          }
+        };
+      }
+    } catch (err) {
+      if (isMounted.current) {
+        console.error("Error accessing camera:", err);
+        let errorMessage = "Could not access camera.";
+        if (err.name === 'NotAllowedError') {
+          errorMessage = "Camera permission denied. Please allow access.";
+        } else if (err.name === 'NotFoundError') {
+          errorMessage = "No camera found on this device.";
+        } else if (err.name === 'NotReadableError') {
+          errorMessage = "Camera is currently in use by another app.";
+        }
+        setError(errorMessage);
+      }
+    }
+  }, [stopCamera]);
+
+  useEffect(() => {
+    isMounted.current = true;
+    startCamera();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+      stopCamera();
+    };
+  }, [startCamera, stopCamera]);
 
   const handleClose = () => {
     stopCamera();
@@ -88,17 +93,30 @@ const CameraCapture = ({ onCapture, onClose }) => {
   };
 
   const capturePhoto = () => {
-    if (videoRef.current) {
+    if (videoRef.current && isReady) {
+      const video = videoRef.current;
+
+      // Create canvas matching video dimensions
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0);
       
+      // Draw current video frame to canvas
+      ctx.drawImage(video, 0, 0);
+
+      // CRITICAL: Stop camera hardware IMMEDIATELY after capturing the frame
+      // This ensures the green light goes off right away
+      stopCamera();
+
+      // Convert canvas to file
       canvas.toBlob((blob) => {
-        const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
-        stopCamera();
-        onCapture(file);
+        if (blob) {
+          const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+          onCapture(file);
+        } else {
+          setError("Failed to capture image.");
+        }
       }, 'image/jpeg', 0.95);
     }
   };
@@ -125,13 +143,20 @@ const CameraCapture = ({ onCapture, onClose }) => {
               <p className="text-gray-300">{error}</p>
             </div>
           ) : (
-            <video 
-              ref={videoRef} 
-              autoPlay
-              playsInline
-              muted
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            <>
+              {/* Loading Spinner until video is ready */}
+              {!isReady && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="w-10 h-10 border-4 border-white/20 border-t-white/80 rounded-full animate-spin"></div>
+                </div>
+              )}
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+              />
+            </>
           )}
         </div>
 
@@ -146,7 +171,7 @@ const CameraCapture = ({ onCapture, onClose }) => {
           
           <button 
             onClick={capturePhoto}
-            disabled={!!error}
+            disabled={!!error || !isReady}
             className="group relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-custom-teal bg-transparent transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="h-12 w-12 rounded-full bg-custom-teal transition-transform group-hover:scale-90"></div>

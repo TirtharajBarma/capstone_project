@@ -90,6 +90,8 @@ predictionSchema.index({ species: 1 });
 predictionSchema.index({ confidence: -1 });
 predictionSchema.index({ createdAt: -1 });
 predictionSchema.index({ userId: 1, createdAt: -1 });
+predictionSchema.index({ userId: 1, species: 1 });
+predictionSchema.index({ userId: 1, predictedBreed: 1 });
 predictionSchema.index({ sessionId: 1, createdAt: -1 });
 
 // Virtual for confidence percentage
