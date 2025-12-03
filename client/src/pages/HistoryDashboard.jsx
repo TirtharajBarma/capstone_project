@@ -65,6 +65,7 @@ const HistoryDashboard = () => {
     };
 
     fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, searchQuery, pagination.currentPage, speciesFilter, sortOrder]);
 
   // Reset to page 1 when filters change

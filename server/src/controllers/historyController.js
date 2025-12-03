@@ -25,13 +25,38 @@ export const getPredictionHistory = asyncHandler(async (req, res) => {
   const query = {};
   
   // Filter by user if provided
-  if (clerkId) {
-    const user = await getUserFromClerkId(clerkId);
+  // If authenticated, force filter by the authenticated user's ID
+  // Note: Since we use requireAuth middleware, req.auth.userId should be present.
+  // If we ever allow public access again, we would need to handle that.
+  if (req.auth?.userId) {
+    const user = await getUserFromClerkId(req.auth.userId);
     if (user) {
       query.userId = user._id;
+    } else {
+      // If user not found in our DB, they have no history
+      return res.status(200).json({
+        success: true,
+        data: {
+          predictions: [],
+          pagination: {
+            currentPage: 1,
+            totalPages: 0,
+            totalItems: 0,
+            itemsPerPage: parseInt(limit),
+            hasNextPage: false,
+            hasPrevPage: false
+          },
+          filters: {}
+        }
+      });
     }
-  } else if (userId) {
-    query.userId = userId;
+  } else {
+    // If not authenticated (and middleware allowed it), or for some reason userId is missing
+    // In strict mode, middleware catches this.
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized access to history'
+    });
   }
 
   if (species) {
@@ -121,13 +146,33 @@ export const getPredictionStats = asyncHandler(async (req, res) => {
   const dateFilter = {};
   
   // Filter by user if provided
-  if (clerkId) {
-    const user = await getUserFromClerkId(clerkId);
+  if (req.auth?.userId) {
+    const user = await getUserFromClerkId(req.auth.userId);
     if (user) {
       dateFilter.userId = user._id;
+    } else {
+      // Return empty stats
+      return res.status(200).json({
+        success: true,
+        data: {
+          totalPredictions: 0,
+          avgConfidence: 0,
+          minConfidence: 0,
+          maxConfidence: 0,
+          uniqueBreedsCount: 0,
+          speciesDistribution: { cattle: 0, buffalo: 0 },
+          topBreeds: [],
+          confidenceDistribution: [],
+          dailyStats: [],
+          dailyAccuracy: []
+        }
+      });
     }
-  } else if (userId) {
-    dateFilter.userId = userId;
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized access to stats'
+    });
   }
   
   if (startDate || endDate) {
@@ -279,6 +324,24 @@ export const getRecentPredictions = asyncHandler(async (req, res) => {
   const { limit = 10, species } = req.query;
 
   const query = {};
+
+  if (req.auth?.userId) {
+    const user = await getUserFromClerkId(req.auth.userId);
+    if (user) {
+      query.userId = user._id;
+    } else {
+        return res.status(200).json({
+            success: true,
+            data: []
+        });
+    }
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized access to recent predictions'
+    });
+  }
+
   if (species) {
     query.species = species.toLowerCase();
   }
@@ -323,6 +386,23 @@ export const deletePrediction = asyncHandler(async (req, res) => {
       success: false,
       message: 'Prediction not found',
       error: 'PREDICTION_NOT_FOUND'
+    });
+  }
+
+  // Ensure user owns the prediction
+  if (req.auth?.userId) {
+    const user = await getUserFromClerkId(req.auth.userId);
+    if (!user || prediction.userId.toString() !== user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to delete this prediction',
+        error: 'UNAUTHORIZED_ACCESS'
+      });
+    }
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized to delete this prediction'
     });
   }
 
