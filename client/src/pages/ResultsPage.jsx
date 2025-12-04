@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUser, SignInButton } from '@clerk/clerk-react';
 import ResultsPanel from '../components/layout/ResultsPanel';
-import { predictionAPI, handleAPIError } from '../services/api';
+import { predictionAPI, breedsAPI, handleAPIError } from '../services/api';
 import { Modal } from '../components/ui';
 
 const ResultsPage = () => {
@@ -88,6 +88,28 @@ const ResultsPage = () => {
       }
     }
   }, [isLoaded, prediction]);
+
+  // Fetch breed info if missing (e.g. when navigating from history)
+  useEffect(() => {
+    const fetchBreedDetails = async () => {
+      if (prediction && prediction.breed && !breedInfo) {
+        try {
+          console.log('Fetching missing breed info for:', prediction.breed);
+          const response = await breedsAPI.getByName(prediction.breed);
+          if (response.success) {
+            setPredictionState(prev => ({
+              ...prev,
+              breedInfo: response.data
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to fetch breed details:', error);
+        }
+      }
+    };
+
+    fetchBreedDetails();
+  }, [prediction, breedInfo]);
 
   // Auto-save after user signs in (if they clicked save before signing in)
   useEffect(() => {

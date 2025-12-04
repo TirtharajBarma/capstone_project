@@ -123,7 +123,7 @@ function App() {
     <div className="relative flex min-h-screen w-full flex-col bg-white">
       {!isAuthenticatedRoute && <Navigation />}
       
-      <main className={!isAuthenticatedRoute ? "flex h-full min-h-screen grow items-center justify-center px-4 py-16 sm:px-6 lg:px-8" : ""}>
+      <main className={!isAuthenticatedRoute ? "flex h-full min-h-screen grow items-center justify-center px-4 py-2 sm:px-6 lg:px-8" : ""}>
         <Routes>
           {/* Public Routes */}
           <Route 

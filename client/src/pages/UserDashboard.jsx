@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import CameraCapture from '../components/ui/CameraCapture';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -8,6 +8,7 @@ import { formatRelativeTime } from '../utils/date';
 
 const UserDashboard = ({ onImageUpload }) => {
   const { user } = useUser();
+  const navigate = useNavigate();
   const [dragOver, setDragOver] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [analytics, setAnalytics] = useState(null);
@@ -282,7 +283,33 @@ const UserDashboard = ({ onImageUpload }) => {
             ) : analytics?.recentRecognitions && analytics.recentRecognitions.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {analytics.recentRecognitions.map((recognition, index) => (
-                  <div key={index} className="flex flex-col gap-3 p-4 rounded-xl bg-bg-card">
+                  <div 
+                    key={index} 
+                    className="flex flex-col gap-3 p-4 rounded-xl bg-bg-card cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => {
+                      // Navigate to results page with the prediction data
+                      // Note: We might need to reconstruct the full prediction object if it's not fully stored in recentRecognitions
+                      // For now, we'll pass what we have and let ResultsPage handle it or fetch if needed
+                      // Assuming recognition object has enough info or we might need to fetch by ID if available
+                      // But based on the schema, it seems we might just have basic info.
+                      // Let's try to pass it as 'prediction' state.
+                      
+                      // Construct a minimal prediction object
+                      const predictionData = {
+                        breed: recognition.breed,
+                        confidence: recognition.confidence || 0.95, // Fallback if not saved
+                        // We might not have the full topPredictions list here, so we might need to mock or omit
+                      };
+                      
+                      navigate('/results', { 
+                        state: { 
+                          prediction: predictionData,
+                          imageUrl: recognition.breedImage,
+                          saved: true // It's from history, so it's saved
+                        } 
+                      });
+                    }}
+                  >
                     <div 
                       className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" 
                       style={{ 

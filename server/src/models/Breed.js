@@ -40,6 +40,11 @@ const breedSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  location: {
+    lat: { type: Number },
+    lng: { type: Number },
+    region: { type: String, trim: true }
+  },
   characteristics: {
     size: {
       type: String,
@@ -51,7 +56,7 @@ const breedSchema = new mongoose.Schema({
     }],
     horns: {
       type: String,
-      enum: ['present', 'absent', 'variable']
+      trim: true
     }
   },
   isActive: {

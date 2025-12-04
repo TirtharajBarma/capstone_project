@@ -132,7 +132,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
       docs = await Breed.find({
         species: mappedSpecies === 'unknown' ? 'cattle' : mappedSpecies, // Default to cattle for unknown
         $or: namesToFetch.map((n) => ({ name: new RegExp(`^${n}$`, 'i') }))
-      }).select('name species origin description traits characteristics');
+      }).select('name species origin description traits characteristics location');
     } catch (e) {
       console.warn('Batch breed meta query failed:', e.message);
     }
@@ -151,7 +151,8 @@ export const predictBreed = asyncHandler(async (req, res) => {
           origin: null,
           description: null,
           traits: [],
-          characteristics: { size: null, color: [], horns: null }
+          characteristics: { size: null, color: [], horns: null },
+          location: null
         };
       }
       return {
@@ -163,8 +164,10 @@ export const predictBreed = asyncHandler(async (req, res) => {
         characteristics: {
           size: doc.characteristics?.size || null,
           color: Array.isArray(doc.characteristics?.color) ? doc.characteristics.color : [],
+          color: Array.isArray(doc.characteristics?.color) ? doc.characteristics.color : [],
           horns: doc.characteristics?.horns || null
-        }
+        },
+        location: doc.location || null
       };
     };
 

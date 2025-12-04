@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { historyAPI, handleAPIError } from '../services/api';
@@ -6,6 +7,7 @@ import { formatDateTime } from '../utils/date';
 
 const HistoryDashboard = () => {
   const { user } = useUser();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -177,6 +179,20 @@ const HistoryDashboard = () => {
                   <div 
                     key={item.id}
                     className="flex cursor-pointer items-center gap-6 rounded-lg border border-primary/10 bg-bg-card p-6 min-h-[100px] justify-between transition-all hover:border-primary hover:shadow-md"
+                    onClick={() => {
+                      const predictionData = {
+                        breed: item.breed,
+                        confidence: item.confidence / 100, // Convert back to decimal for ResultsPage
+                      };
+                      
+                      navigate('/results', { 
+                        state: { 
+                          prediction: predictionData,
+                          imageUrl: item.image,
+                          saved: true
+                        } 
+                      });
+                    }}
                   >
                     <div className="flex items-center gap-6">
                       <div 

@@ -24,160 +24,227 @@ const BUFFALO_SET = new Set([
   'Nagpuri'
 ]);
 
-// Optional origin overrides for better accuracy; defaults to 'India' otherwise
-const ORIGIN_MAP = {
-  Ayrshire: 'Scotland',
-  Guernsey: 'Channel Islands',
-  Brown_Swiss: 'Switzerland',
-  Jersey: 'Channel Islands',
-  Red_Dane: 'Denmark',
-  Holstein_Friesian: 'Netherlands/Germany',
-  Nili_Ravi: 'Punjab (India/Pakistan)',
-  Jaffrabadi: 'Gujarat, India',
-  Murrah: 'Haryana, India',
-  Mehsana: 'Gujarat, India',
-  Surti: 'Gujarat, India',
-  Nagpuri: 'Maharashtra, India',
-  Gir: 'Gujarat, India',
-  Kankrej: 'Gujarat, India',
-  Sahiwal: 'Punjab (India/Pakistan)',
-  Red_Sindhi: 'Sindh (Pakistan)',
-  Tharparkar: 'Rajasthan, India',
-  Hariana: 'Haryana, India'
-};
-
-// Optional detailed overrides for traits and characteristics
-// Note: Keep keys exactly matching classes.json entries
-const OVERRIDES = {
+// Master Data Map: Combines Origin, Location, Description, Traits, and Characteristics
+const BREED_DATA = {
+  // --- CATTLE BREEDS ---
   Gir: {
-    description: 'Renowned Indian zebu dairy breed known for heat tolerance and disease resistance.',
+    origin: 'Gujarat, India',
+    location: { lat: 21.13, lng: 70.80, region: 'Gir Forest, Gujarat' },
+    description: 'The Gir is a famous Indian dairy cattle breed, native to the Gir hills and forests of Kathiawar. Known for its distinctive convex forehead and long, pendulous ears. It is highly resistant to tropical diseases and heat.',
     traits: ['Dairy breed', 'Heat tolerant', 'Disease resistant', 'Docile'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    characteristics: { size: 'medium', color: ['Red', 'Speckled Red', 'White'], horns: 'Curved back and down' }
   },
   Kankrej: {
-    description: 'Dual-purpose Indian breed valued for milk and draught power.',
-    traits: ['Dual-purpose', 'Hardy', 'Heat tolerant'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
+    origin: 'Gujarat, India',
+    location: { lat: 24.17, lng: 71.95, region: 'Banaskantha, Gujarat' },
+    description: 'One of the heaviest Indian breeds, the Kankrej is valued for both milk and draught power. They have massive, lyre-shaped horns and a powerful gait known as "Sawai Chal".',
+    traits: ['Dual-purpose', 'Strong draught power', 'Heat tolerant', 'Active'],
+    characteristics: { size: 'large', color: ['Silver-grey', 'Iron-grey', 'Black'], horns: 'Large, lyre-shaped' }
   },
   Sahiwal: {
-    description: 'High-yielding zebu dairy breed adapted to hot climates.',
-    traits: ['Dairy breed', 'Heat tolerant', 'Tick resistant'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Punjab (India/Pakistan)',
+    location: { lat: 30.66, lng: 73.11, region: 'Sahiwal District, Punjab' },
+    description: 'The Sahiwal is considered one of the best dairy breeds in India and Pakistan. It is known for high milk yield with high butterfat content and excellent heat tolerance.',
+    traits: ['Dairy breed', 'High milk yield', 'Tick resistant', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: ['Reddish Dun', 'Pale Red'], horns: 'Short and thick' }
   },
   Red_Sindhi: {
-    description: 'Red-coated dairy zebu noted for adaptation and longevity.',
-    traits: ['Dairy breed', 'Heat adapted', 'Disease resistant'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Sindh (Pakistan)',
+    location: { lat: 25.39, lng: 68.35, region: 'Hyderabad, Sindh' },
+    description: 'Similar to Sahiwal but smaller, the Red Sindhi is a hardy dairy breed. It is extremely adaptable to different climates and resistant to common cattle diseases.',
+    traits: ['Dairy breed', 'Heat adapted', 'Disease resistant', 'Hardy'],
+    characteristics: { size: 'small', color: ['Deep Red'], horns: 'Short and curved' }
   },
   Tharparkar: {
-    description: 'Dual-purpose desert-adapted zebu breed from Rajasthan.',
-    traits: ['Dual-purpose', 'Drought tolerant', 'Hardy'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Rajasthan, India',
+    location: { lat: 24.74, lng: 69.80, region: 'Tharparkar District' },
+    description: 'Also known as "White Sindhi", this breed is native to the Thar Desert. It is a dual-purpose breed known for its ability to thrive on poor quality forage and withstand extreme heat.',
+    traits: ['Dual-purpose', 'Drought tolerant', 'Disease resistant', 'Hardy'],
+    characteristics: { size: 'medium', color: ['White', 'Grey'], horns: 'Medium, curved' }
   },
   Hariana: {
-    description: 'Northern Indian zebu breed used for draught and milk.',
-    traits: ['Dual-purpose', 'Hardy'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
+    origin: 'Haryana, India',
+    location: { lat: 29.05, lng: 76.08, region: 'Rohtak, Haryana' },
+    description: 'The Hariana is a prominent dual-purpose breed from Northern India. Bullocks are excellent for field work, and cows are fair milkers.',
+    traits: ['Dual-purpose', 'Strong draught', 'Active'],
+    characteristics: { size: 'large', color: ['White', 'Light Grey'], horns: 'Short and fine' }
   },
   Hallikar: {
-    description: 'South Indian draught zebu known for endurance.',
-    traits: ['Strong draught', 'Hardy'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Karnataka, India',
+    location: { lat: 12.29, lng: 76.63, region: 'Mysore, Karnataka' },
+    description: 'Native to the Mysore region, Hallikar cattle are the progenitors of the Amritmahal breed. They are best known for their draught capacity and trotting ability.',
+    traits: ['Draught breed', 'Endurance', 'Fast trotter'],
+    characteristics: { size: 'medium', color: ['Grey', 'Dark Grey'], horns: 'Long, vertical and backward' }
   },
-  Murrah: {
-    description: 'Premier Indian dairy buffalo with high butterfat milk.',
-    traits: ['Dairy breed', 'High milk fat'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
-  },
-  Mehsana: {
-    description: 'Composite Indian dairy buffalo breed known for good milk.',
-    traits: ['Dairy breed', 'Adaptable'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
-  },
-  Jaffrabadi: {
-    description: 'Massive Indian buffalo breed with strong frame.',
-    traits: ['Large frame', 'Good milk production'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
-  },
-  Surti: {
-    description: 'Medium-sized Indian buffalo with steady milk yield.',
-    traits: ['Dairy breed', 'Heat tolerant'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
-  },
-  Nili_Ravi: {
-    description: 'High-yield dairy buffalo from the Punjab region.',
-    traits: ['Dairy breed', 'Good fertility'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
-  },
-  Holstein_Friesian: {
-    description: 'Global high-yield dairy cattle breed.',
-    traits: ['Very high milk production'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
-  },
-  Jersey: {
-    description: 'Jersey dairy breed known for rich milk.',
-    traits: ['High milk fat', 'Efficient grazer'],
-    characteristics: { size: 'small', color: [], horns: 'present' }
-  },
-  Brown_Swiss: {
-    description: 'Sturdy dairy breed with good temperament.',
-    traits: ['Dairy breed', 'Hardy'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
-  },
-  Guernsey: {
-    description: 'Channel Island dairy breed noted for golden milk.',
-    traits: ['High milk fat', 'Docile'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
-  },
-  Ayrshire: {
-    description: 'Scottish dairy breed with balanced production.',
-    traits: ['Dairy breed', 'Robust'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
-  },
-  Vechur: {
-    description: 'Small indigenous cattle breed from Kerala.',
-    traits: ['Small size', 'Adapted to humid climates'],
-    characteristics: { size: 'small', color: [], horns: 'present' }
+  Amritmahal: {
+    origin: 'Karnataka, India',
+    location: { lat: 13.55, lng: 75.78, region: 'Chikmagalur, Karnataka' },
+    description: 'Developed by the rulers of Mysore for warfare and transport, Amritmahal cattle are famous for their speed and endurance. They are fiery and active.',
+    traits: ['Draught breed', 'High endurance', 'Active', 'Fiery temperament'],
+    characteristics: { size: 'medium', color: ['Grey', 'White'], horns: 'Long, sharp, close together' }
   },
   Ongole: {
-    description: 'Indian zebu known internationally as Nellore.',
-    traits: ['Hardy', 'Draught power'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
+    origin: 'Andhra Pradesh, India',
+    location: { lat: 15.50, lng: 80.04, region: 'Ongole, Andhra Pradesh' },
+    description: 'A large, muscular breed known internationally (as Nellore in Brazil). They are excellent for heavy draught work and are resistant to Foot and Mouth Disease.',
+    traits: ['Dual-purpose', 'Heavy draught', 'Disease resistant', 'Heat tolerant'],
+    characteristics: { size: 'large', color: ['White', 'Grey'], horns: 'Short and stumpy' }
   },
-  Rathi: {
-    description: 'Indian dual-purpose breed from Rajasthan.',
-    traits: ['Dual-purpose', 'Heat tolerant'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
-  },
-  Khillari: {
-    description: 'Deccan plateau draught breed with endurance.',
-    traits: ['Strong draught', 'Hardy'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
-  },
-  Kangayam: {
-    description: 'Tamil Nadu draught breed with good adaptation.',
-    traits: ['Strong draught', 'Heat tolerant'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+  Krishna_Valley: {
+    origin: 'Karnataka, India',
+    location: { lat: 16.16, lng: 74.83, region: 'Krishna River Basin' },
+    description: 'A heavy draught breed found along the banks of the Krishna River. They are powerful animals used for ploughing in black cotton soil.',
+    traits: ['Draught breed', 'Powerful', 'Heavy worker'],
+    characteristics: { size: 'large', color: ['Grey', 'White'], horns: 'Small and curved' }
   },
   Deoni: {
-    description: 'Dual-purpose Indian breed with good milk and draught.',
-    traits: ['Dual-purpose', 'Hardy'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Maharashtra, India',
+    location: { lat: 18.40, lng: 77.08, region: 'Latur, Maharashtra' },
+    description: 'Resembling the Gir in head shape, the Deoni is a dual-purpose breed. It is well-suited for the rocky terrain of the Deccan plateau.',
+    traits: ['Dual-purpose', 'Hardy', 'Good milker'],
+    characteristics: { size: 'medium', color: ['Spotted Black & White'], horns: 'Medium, lateral' }
+  },
+  Khillari: {
+    origin: 'Maharashtra, India',
+    location: { lat: 17.65, lng: 75.90, region: 'Solapur, Maharashtra' },
+    description: 'A fast-paced draught breed known for its ability to work without fatigue. They are spirited and require firm handling.',
+    traits: ['Draught breed', 'Fast worker', 'Spirited', 'Hardy'],
+    characteristics: { size: 'medium', color: ['Greyish White'], horns: 'Long, pointed, forward' }
+  },
+  Kangayam: {
+    origin: 'Tamil Nadu, India',
+    location: { lat: 11.01, lng: 77.55, region: 'Kangayam, Tamil Nadu' },
+    description: 'A sturdy draught breed from Tamil Nadu. They are known for their compact body and ability to thrive on poor fodder.',
+    traits: ['Draught breed', 'Hardy', 'Low maintenance'],
+    characteristics: { size: 'medium', color: ['Grey', 'White'], horns: 'Stout and curved' }
+  },
+  Rathi: {
+    origin: 'Rajasthan, India',
+    location: { lat: 28.02, lng: 73.31, region: 'Bikaner, Rajasthan' }, // Added location
+    description: 'An important dual-purpose breed of the arid Rajasthan region. It is a good milker and hardy worker.',
+    traits: ['Dual-purpose', 'Heat tolerant', 'Good milker'],
+    characteristics: { size: 'medium', color: ['Brown', 'White', 'Black spots'], horns: 'Short' }
   },
   Dangi: {
-    description: 'Western Indian breed adapted to heavy rainfall regions.',
-    traits: ['Hardy', 'Good for draught'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Maharashtra, India',
+    location: { lat: 20.00, lng: 73.78, region: 'Nashik, Maharashtra' }, // Added location
+    description: 'Native to the hilly rainfall areas of the Western Ghats. Their skin secretes an oil that protects them from heavy rain.',
+    traits: ['Draught breed', 'Rain tolerant', 'Hardy'],
+    characteristics: { size: 'medium', color: ['Red & White spots', 'Black & White spots'], horns: 'Short and thick' }
+  },
+  Vechur: {
+    origin: 'Kerala, India',
+    location: { lat: 9.59, lng: 76.52, region: 'Kottayam, Kerala' }, // Added location
+    description: 'The world\'s smallest cattle breed. Native to Kerala, they are extremely resistant to diseases and require very little food.',
+    traits: ['Miniature breed', 'Disease resistant', 'Low maintenance', 'Heat tolerant'],
+    characteristics: { size: 'small', color: ['Light Red', 'Black', 'White'], horns: 'Small' }
+  },
+  Holstein_Friesian: {
+    origin: 'Netherlands/Germany',
+    location: { lat: 53.16, lng: 5.78, region: 'Friesland, Netherlands' },
+    description: 'The world\'s highest-production dairy animal. Known for its distinctive black and white markings and outstanding milk yield.',
+    traits: ['Dairy breed', 'Very high milk yield', 'Large frame'],
+    characteristics: { size: 'large', color: ['Black & White'], horns: 'Short (often polled)' }
+  },
+  Jersey: {
+    origin: 'Channel Islands',
+    location: { lat: 49.21, lng: -2.13, region: 'Jersey, Channel Islands' },
+    description: 'A small dairy breed known for the high butterfat content of its milk. They are efficient converters of feed to milk and have a docile temperament.',
+    traits: ['Dairy breed', 'High butterfat', 'Efficient', 'Docile'],
+    characteristics: { size: 'small', color: ['Fawn', 'Cream', 'Light Brown'], horns: 'Small and curved' }
+  },
+  Brown_Swiss: {
+    origin: 'Switzerland',
+    location: { lat: 47.05, lng: 8.30, region: 'Schwyz, Switzerland' },
+    description: 'One of the oldest dairy breeds, known for their longevity, strong legs, and good cheese-making milk.',
+    traits: ['Dairy breed', 'Longevity', 'Strong constitution'],
+    characteristics: { size: 'large', color: ['Brown', 'Grey-Brown'], horns: 'Short and white' }
+  },
+  Guernsey: {
+    origin: 'Channel Islands',
+    location: { lat: 49.44, lng: -2.58, region: 'Guernsey, Channel Islands' },
+    description: 'Produces "Golden Guernsey" milk, rich in beta-carotene. They are docile and efficient producers.',
+    traits: ['Dairy breed', 'High butterfat', 'Golden milk', 'Docile'],
+    characteristics: { size: 'medium', color: ['Fawn & White'], horns: 'Medium curved' }
+  },
+  Ayrshire: {
+    origin: 'Scotland',
+    location: { lat: 55.45, lng: -4.63, region: 'Ayrshire, Scotland' },
+    description: 'A hardy dairy breed from Scotland, known for its ability to forage in rugged terrain and produce milk with good protein/fat balance.',
+    traits: ['Dairy breed', 'Hardy', 'Efficient forager'],
+    characteristics: { size: 'medium', color: ['Red & White'], horns: 'Lyre-shaped' }
+  },
+  Red_Dane: {
+    origin: 'Denmark',
+    location: { lat: 56.26, lng: 9.50, region: 'Denmark' }, // Added location
+    description: 'A Danish dairy breed known for high milk production and good fertility.',
+    traits: ['Dairy breed', 'High yield', 'Fertile'],
+    characteristics: { size: 'large', color: ['Red'], horns: 'Short' }
+  },
+
+  // --- BUFFALO BREEDS ---
+  Murrah: {
+    origin: 'Haryana, India',
+    location: { lat: 29.14, lng: 76.45, region: 'Jind, Haryana' },
+    description: 'The "Black Gold" of India. Murrah is the premier milking buffalo breed, known for its tightly curled horns and high milk production.',
+    traits: ['Dairy breed', 'High milk yield', 'High butterfat'],
+    characteristics: { size: 'large', color: ['Jet Black'], horns: 'Tightly curled' }
+  },
+  Mehsana: {
+    origin: 'Gujarat, India',
+    location: { lat: 23.58, lng: 72.36, region: 'Mehsana, Gujarat' },
+    description: 'Developed from a cross between Murrah and Surti. They are persistent milkers and have a longer lactation period.',
+    traits: ['Dairy breed', 'Persistent milker', 'Docile'],
+    characteristics: { size: 'medium', color: ['Black', 'Grey'], horns: 'Curved, less curled than Murrah' }
+  },
+  Jaffrabadi: {
+    origin: 'Gujarat, India',
+    location: { lat: 20.86, lng: 71.37, region: 'Jaffrabad, Gujarat' },
+    description: 'The heaviest Indian buffalo breed. They have massive, drooping horns and are excellent converters of roughage.',
+    traits: ['Dairy breed', 'Large frame', 'High butterfat'],
+    characteristics: { size: 'large', color: ['Black'], horns: 'Heavy, drooping' }
+  },
+  Surti: {
+    origin: 'Gujarat, India',
+    location: { lat: 22.30, lng: 73.18, region: 'Vadodara, Gujarat' },
+    description: 'A medium-sized buffalo breed known for its sickle-shaped horns. They are economical producers for small farmers.',
+    traits: ['Dairy breed', 'Economical', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: ['Black', 'Brown'], horns: 'Sickle-shaped' }
+  },
+  Nili_Ravi: {
+    origin: 'Punjab (India/Pakistan)',
+    location: { lat: 31.05, lng: 73.65, region: 'Lahore/Sahiwal' },
+    description: 'Known as "Panch Kalyani" due to white markings on forehead, face, muzzle, and legs. Excellent milk producers.',
+    traits: ['Dairy breed', 'High yield', 'Distinctive markings'],
+    characteristics: { size: 'large', color: ['Black with white markings'], horns: 'Small, tightly curled' }
   },
   Bhadawari: {
-    description: 'Indian buffalo known for high milk fat content.',
-    traits: ['High milk fat', 'Dairy breed'],
-    characteristics: { size: 'medium', color: [], horns: 'present' }
+    origin: 'Uttar Pradesh, India',
+    location: { lat: 26.77, lng: 78.73, region: 'Etawah, Uttar Pradesh' },
+    description: 'Famous for the highest butterfat content (up to 13%) in its milk. They are copper-colored and heat tolerant.',
+    traits: ['Dairy breed', 'Highest butterfat', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: ['Copper', 'Light Brown'], horns: 'Flat, curved' }
   },
   Nagpuri: {
-    description: 'Buffalo breed from Maharashtra adapted to arid conditions.',
-    traits: ['Adaptable', 'Dairy potential'],
-    characteristics: { size: 'large', color: [], horns: 'present' }
+    origin: 'Maharashtra, India',
+    location: { lat: 21.14, lng: 79.08, region: 'Nagpur, Maharashtra' },
+    description: 'Also known as Ellichpuri. They are adapted to the harsh climate of Central India and have long, sword-shaped horns.',
+    traits: ['Dual-purpose', 'Hardy', 'Heat tolerant'],
+    characteristics: { size: 'medium', color: ['Black'], horns: 'Long, sword-shaped' }
+  },
+  Toda: {
+    origin: 'Tamil Nadu, India',
+    location: { lat: 11.40, lng: 76.73, region: 'Nilgiris, Tamil Nadu' },
+    description: 'A semi-wild breed reared by the Toda tribe in the Nilgiris. They are fierce and known for their gregarious nature.',
+    traits: ['Social/Cultural importance', 'Hardy', 'Fierce'],
+    characteristics: { size: 'medium', color: ['Fawn', 'Ash-grey'], horns: 'Wide, curved' }
+  },
+  Pandharpuri: {
+    origin: 'Maharashtra, India',
+    location: { lat: 17.67, lng: 75.32, region: 'Pandharpur, Maharashtra' },
+    description: 'Named after the town Pandharpur. They have very long, sword-like horns that can reach up to 45-50cm.',
+    traits: ['Dairy breed', 'Hardy', 'Reproductive efficiency'],
+    characteristics: { size: 'medium', color: ['Black'], horns: 'Very long, sword-shaped' }
   }
 };
 
@@ -191,46 +258,52 @@ const seedBreeds = async () => {
       throw new Error('classes.json is empty or invalid');
     }
 
-    // Build seed array strictly from classes.json
-    const breedsData = classes.map((cls) => {
-      const species = BUFFALO_SET.has(cls) ? 'buffalo' : 'cattle';
-      const origin = ORIGIN_MAP[cls] || 'India';
-      const base = {
-        name: cls, // Keep exact class name (underscores) to match model output
-        species,
-        origin,
-        description: `Recognized ${species} breed.`,
-        isActive: true
-      };
-      const extra = OVERRIDES[cls] || {};
-      // Merge characteristics carefully to preserve object shape
-      const merged = {
-        ...base,
-        ...(extra.description ? { description: extra.description } : {}),
-        ...(Array.isArray(extra.traits) ? { traits: extra.traits } : {}),
-        ...(extra.characteristics ? { characteristics: {
-          size: extra.characteristics.size || null,
-          color: Array.isArray(extra.characteristics.color) ? extra.characteristics.color : [],
-          horns: extra.characteristics.horns || null
-        }} : {})
-      };
-      return merged;
-    });
-
     console.log('Connecting to database...');
     await connectDB();
 
     console.log('Clearing existing breed data...');
     await Breed.deleteMany({});
 
-    console.log('Seeding breed data from classes.json...');
+    console.log('Preparing breed data...');
+    const breedsData = classes.map((cls) => {
+      const isBuffalo = BUFFALO_SET.has(cls);
+      const species = isBuffalo ? 'buffalo' : 'cattle';
+      
+      // Get enriched data or fallback
+      const enriched = BREED_DATA[cls] || {};
+      
+      // Handle missing data gracefully
+      const origin = enriched.origin || 'India';
+      const description = enriched.description || `Recognized ${species} breed.`;
+      const traits = enriched.traits || [];
+      const characteristics = enriched.characteristics || { size: 'medium', color: [], horns: 'present' };
+      const location = enriched.location || null;
+
+      return {
+        name: cls,
+        species,
+        origin,
+        description,
+        traits,
+        characteristics,
+        location,
+        isActive: true
+      };
+    });
+
+    console.log('Seeding breed data...');
     const createdBreeds = await Breed.insertMany(breedsData);
 
-    console.log(`✅ Successfully seeded ${createdBreeds.length} breeds`);
-    console.log('Breeds seeded (name -> species):');
-    createdBreeds.forEach((breed) => {
-      console.log(`  - ${breed.name} -> ${breed.species}`);
-    });
+    console.log(`✅ Successfully seeded ${createdBreeds.length} breeds with enriched data.`);
+    
+    // Validate a few entries
+    const sample = createdBreeds.find(b => b.name === 'Gir');
+    if (sample) {
+      console.log('\nSample Entry (Gir):');
+      console.log(`- Origin: ${sample.origin}`);
+      console.log(`- Location: ${JSON.stringify(sample.location)}`);
+      console.log(`- Traits: ${sample.traits.join(', ')}`);
+    }
 
     process.exit(0);
   } catch (error) {

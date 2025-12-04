@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
@@ -6,6 +7,7 @@ import { historyAPI, handleAPIError } from '../services/api';
 
 const AnalyticsDashboard = () => {
   const { user } = useUser();
+  const navigate = useNavigate();
   const [dateRange, setDateRange] = useState('30'); // days
   const [stats, setStats] = useState({
     totalSubmissions: 0,
@@ -266,7 +268,23 @@ const AnalyticsDashboard = () => {
               </thead>
               <tbody>
                 {recentSubmissions.map((submission) => (
-                  <tr key={submission.id} className="border-b border-primary/10 last:border-0 hover:bg-bg-card-subtle transition-colors">
+                  <tr 
+                    key={submission.id} 
+                    className="border-b border-primary/10 last:border-0 hover:bg-bg-card-subtle transition-colors cursor-pointer"
+                    onClick={() => {
+                      const predictionData = {
+                        breed: submission.breed,
+                        confidence: parseFloat(submission.confidence) / 100,
+                      };
+                      navigate('/results', {
+                        state: {
+                          prediction: predictionData,
+                          imageUrl: submission.image,
+                          saved: true
+                        }
+                      });
+                    }}
+                  >
                     <td className="p-4">
                       <div 
                         className="aspect-video w-24 rounded bg-cover bg-center"
