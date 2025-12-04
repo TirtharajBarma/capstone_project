@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { SignedOut } from '@clerk/clerk-react';
+import { SignedOut, useAuth } from '@clerk/clerk-react';
 import Navigation from './components/layout/Navigation';
 import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
@@ -11,7 +11,7 @@ import ResultsPage from './pages/ResultsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import { predictionAPI, breedsAPI, utils, handleAPIError } from './services/api';
+import { predictionAPI, breedsAPI, utils, handleAPIError, setClerkTokenGetter } from './services/api';
 import { useUserSync } from './hooks/useUserSync';
 import './App.css';
 
@@ -21,9 +21,15 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentImageUrlRef = useRef(null);
+  const { getToken } = useAuth();
 
   // User synchronization hook
   const { user } = useUserSync();
+
+  // Set Clerk token getter for API client
+  useEffect(() => {
+    setClerkTokenGetter(getToken);
+  }, [getToken]);
 
   // Cleanup object URL on unmount
   useEffect(() => {
@@ -55,8 +61,11 @@ function App() {
       // Determine if user is authenticated
       const isAuthenticated = !!user?.id;
       
-      // Only save to DB if user is authenticated
-      const saveToDb = isAuthenticated;
+      // Always set saveToDb to false to ensure we upload image to Cloudinary first
+      // The user must explicitly click "Save" on the results page
+      const saveToDb = false; 
+
+      console.log('Making prediction request...', { isAuthenticated, saveToDb });
 
       // Make prediction
       const response = await predictionAPI.predict(file, undefined, user?.id, saveToDb);
@@ -171,7 +180,7 @@ function App() {
           
           {/* Authentication Routes */}
           <Route 
-            path="/login" 
+            path="/login/*" 
             element={
               <SignedOut>
                 <LoginPage />
@@ -180,7 +189,7 @@ function App() {
           />
           
           <Route 
-            path="/register" 
+            path="/register/*" 
             element={
               <SignedOut>
                 <RegisterPage />

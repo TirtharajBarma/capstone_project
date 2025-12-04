@@ -6,11 +6,14 @@ const RegisterPage = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-md">
         <SignUp 
-          redirectUrl="/dashboard"
-          afterSignUpUrl="/dashboard"
-          routing="path"
-          path="/register"
+          fallbackRedirectUrl="/dashboard"
           signInUrl="/login"
+          appearance={{
+            elements: {
+              rootBox: "w-full",
+              card: "shadow-none bg-transparent"
+            }
+          }}
         />
       </div>
     </div>

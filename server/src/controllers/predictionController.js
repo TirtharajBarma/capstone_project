@@ -304,13 +304,44 @@ export const savePrediction = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Find user
-    const user = await User.findOne({ clerkId });
+    // Find or create user
+    let user = await User.findOne({ clerkId });
     
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found. Please register first.'
+      // Create a minimal user record - will be updated on next sync
+      user = new User({
+        clerkId: clerkId,
+        name: 'User',
+        isActive: true
+      });
+      await user.save();
+    }
+
+    // Prevent duplicate save ONLY if searchTimestamp matches
+    // This allows the same breed/image to be saved in different search sessions
+    let existing = null;
+    
+    if (predictionData.searchTimestamp) {
+      // If we have a searchTimestamp, only check for that specific search session
+      existing = await Prediction.findOne({
+        userId: user._id,
+        predictedBreed: predictionData.predictedBreed,
+        confidence: predictionData.confidence,
+        'imageMetadata.originalName': predictionData.imageMetadata?.originalName || undefined,
+        searchTimestamp: predictionData.searchTimestamp
+      }).lean();
+    }
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          predictionId: existing._id,
+          breed: existing.predictedBreed,
+          confidence: existing.confidence,
+          timestamp: existing.createdAt
+        },
+        message: 'Duplicate save prevented; returning existing prediction'
       });
     }
 

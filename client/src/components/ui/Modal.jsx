@@ -33,7 +33,7 @@ const Modal = ({
       {/* Modal Content */}
       <div
         className={cn(
-          'relative w-full neumorph-card m-4 max-h-[90vh] overflow-auto',
+          'relative w-full bg-white rounded-xl shadow-2xl m-4 max-h-[90vh] overflow-auto',
           sizes[size],
           className
         )}

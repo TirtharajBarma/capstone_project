@@ -1,40 +1,37 @@
 import React from 'react';
-import Sidebar from '../components/layout/Sidebar';
+import { UserProfile } from '@clerk/clerk-react';
+import DashboardLayout from '../components/layout/DashboardLayout';
 
 const SettingsDashboard = () => {
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden bg-white">
-      <div className="flex h-full min-w-0">
-        <Sidebar />
-        
-        <main className="flex flex-1 flex-col lg:ml-64 w-full">
-          <div className="flex flex-1 flex-col p-4 md:p-8">
-            <div className="flex flex-col gap-6">
-              {/* Page Heading */}
-              <div className="flex flex-wrap justify-between gap-3">
-                <div className="flex min-w-72 flex-col gap-2">
-                  <p className="text-gray-800 text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">
-                    Settings
-                  </p>
-                  <p className="text-gray-600 text-base font-normal leading-normal">
-                    Manage your account preferences.
-                  </p>
-                </div>
-              </div>
-
-              {/* Placeholder Content */}
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-green-600 text-3xl">settings</span>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Settings</h2>
-                <p className="text-gray-600">Customize your preferences here...</p>
-              </div>
-            </div>
+    <DashboardLayout>
+      <div className="flex-1 p-6 lg:p-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
+          {/* Page Heading */}
+          <div>
+            <p className="text-5xl font-black leading-tight tracking-[-0.033em] text-primary">Account Settings</p>
           </div>
-        </main>
+
+          {/* Settings Content */}
+          <div className="flex justify-center">
+            <UserProfile 
+              appearance={{
+                elements: {
+                  rootBox: "w-full max-w-4xl",
+                  card: "shadow-none border border-primary/10 rounded-xl w-full",
+                  navbar: "hidden",
+                  navbarMobileMenuButton: "hidden",
+                  headerTitle: "text-2xl font-bold text-primary",
+                  headerSubtitle: "text-primary/70",
+                  formButtonPrimary: "bg-primary hover:bg-primary-dark text-white",
+                  formFieldInput: "rounded-lg border-primary/20 focus:ring-primary focus:border-primary",
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

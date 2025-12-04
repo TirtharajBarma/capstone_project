@@ -8,10 +8,10 @@ import { Breed } from '../models/index.js';
 // Load environment variables
 dotenv.config();
 
-// Resolve path to classes.json located at repoRoot/pytorch/classes.json
+// Resolve path to classes.json located at repoRoot/model/classes.json
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const classesPath = path.resolve(__dirname, '../../../pytorch/classes.json');
+const classesPath = path.resolve(__dirname, '../../../model/classes.json');
 
 // Known buffalo breeds (use class names exactly as in classes.json)
 const BUFFALO_SET = new Set([

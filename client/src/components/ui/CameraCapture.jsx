@@ -172,9 +172,9 @@ const CameraCapture = ({ onCapture, onClose }) => {
           <button 
             onClick={capturePhoto}
             disabled={!!error || !isReady}
-            className="group relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-custom-teal bg-transparent transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-primary bg-transparent transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="h-12 w-12 rounded-full bg-custom-teal transition-transform group-hover:scale-90"></div>
+            <div className="h-12 w-12 rounded-full bg-primary transition-transform group-hover:scale-90"></div>
           </button>
 
           <div className="w-[46px]"></div> {/* Spacer for centering */}

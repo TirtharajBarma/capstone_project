@@ -18,6 +18,7 @@ createRoot(document.getElementById('root')).render(
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
         afterSignOutUrl="/"
+        afterSignInUrl="/dashboard"
         appearance={{
           elements: {
             modalBackdrop: "backdrop-blur-sm bg-black/50",

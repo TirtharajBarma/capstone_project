@@ -2,14 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './src/config/database.js';
-import { predictionRoutes, breedRoutes, historyRoutes, userRoutes, webhookRoutes } from './src/routes/index.js';
+import { predictionRoutes, breedRoutes, historyRoutes, userRoutes, webhookRoutes, uploadRoutes } from './src/routes/index.js';
 import { notFound, errorHandler } from './src/middleware/errorHandler.js';
 
 // Load environment variables
 dotenv.config();
 
 // Validate environment variables
-const requiredEnvVars = ['MONGODB_URI', 'CLERK_WEBHOOK_SECRET', 'MODEL_API_URL'];
+const requiredEnvVars = [
+  'MONGODB_URI', 
+  'CLERK_WEBHOOK_SECRET', 
+  'MODEL_API_URL',
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET'
+];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
@@ -59,6 +66,7 @@ app.use('/api/breeds', breedRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

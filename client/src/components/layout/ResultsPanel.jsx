@@ -26,13 +26,13 @@ const ResultsPanel = ({
   return (
     <div className="flex flex-col flex-1 px-4 py-8 md:py-12">
       <div className="flex flex-wrap justify-between gap-4">
-        <p className="text-gray-900 text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">Recognition Results</p>
+        <p className="text-primary text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">Recognition Results</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mt-8">
         {/* Left Column: Uploaded Image */}
         <div className="flex flex-col">
-          <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Your Image</h2>
-          <div className="w-full grow aspect-w-4 aspect-h-3 rounded-xl overflow-hidden shadow-lg border border-gray-200 bg-gray-50">
+          <h2 className="text-primary text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Your Image</h2>
+          <div className="w-full grow aspect-w-4 aspect-h-3 rounded-xl overflow-hidden shadow-lg border border-primary/10 bg-bg-card-subtle">
             <img 
               src={imageUrl} 
               alt="Uploaded cattle" 
@@ -43,8 +43,8 @@ const ResultsPanel = ({
         
         {/* Right Column: Results Panel */}
         <div className="flex flex-col">
-          <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Top Match</h2>
-          <div className="flex flex-col gap-6 p-6 bg-white rounded-xl shadow-lg border border-gray-200">
+          <h2 className="text-primary text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Top Match</h2>
+          <div className="flex flex-col gap-6 p-6 bg-bg-card rounded-xl shadow-lg border border-primary/10">
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-bold text-primary">{prediction.breed}</h3>
               <div className="flex items-center gap-2">
@@ -52,25 +52,25 @@ const ResultsPanel = ({
                 <p className="text-3xl font-black text-secondary">{confidencePercentage}%</p>
               </div>
             </div>
-            <p className="text-text-neutral text-sm leading-relaxed">
+            <p className="text-primary/70 text-sm leading-relaxed">
               {breedInfo?.description || `Our model is ${confidencePercentage}% confident that the animal in your image is a ${prediction.breed}.`}
             </p>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="w-full bg-bg-card-subtle rounded-full h-2.5">
               <div className="bg-secondary h-2.5 rounded-full" style={{ width: `${confidencePercentage}%` }}></div>
             </div>
           </div>
           
           <div className="mt-8">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Other Possibilities</h3>
+            <h3 className="text-lg font-bold text-primary mb-4">Other Possibilities</h3>
             <div className="space-y-3">
               {otherPossibilities.map((item, index) => (
-                <div key={item.name || index} className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                  <span className="font-medium text-gray-700">{item.name}</span>
+                <div key={item.name || index} className="flex justify-between items-center p-4 bg-bg-card rounded-lg border border-primary/10">
+                  <span className="font-medium text-primary/70">{item.name}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-bold text-text-neutral">{item.confidence}%</span>
+                    <span className="text-sm font-bold text-primary/70">{item.confidence}%</span>
                     {index === 0 && (
-                      <div className="w-24 bg-gray-200 rounded-full h-1.5">
-                        <div className="bg-text-neutral/50 h-1.5 rounded-full" style={{ width: `${item.confidence}%` }}></div>
+                      <div className="w-24 bg-bg-card-subtle rounded-full h-1.5">
+                        <div className="bg-primary/50 h-1.5 rounded-full" style={{ width: `${item.confidence}%` }}></div>
                       </div>
                     )}
                   </div>
@@ -79,15 +79,15 @@ const ResultsPanel = ({
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-4 mt-10 pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center gap-4 mt-10 pt-6 border-t border-primary/10">
             <button 
               onClick={onSave}
               disabled={isSaved || isSaving}
               className={`w-full sm:w-auto flex-1 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 text-base font-bold leading-normal tracking-[0.015em] transition-colors ${
                 isSaved 
-                  ? 'bg-green-500 text-white cursor-not-allowed' 
+                  ? 'bg-primary text-white cursor-not-allowed' 
                   : isSaving
-                  ? 'bg-gray-400 text-white cursor-wait'
+                  ? 'bg-primary/50 text-white cursor-wait'
                   : 'bg-primary text-white hover:bg-opacity-90'
               }`}
             >
@@ -101,7 +101,7 @@ const ResultsPanel = ({
             >
               <span>Try Another Image</span>
             </button>
-            <a className="w-full sm:w-auto text-center px-6 py-3 text-sm font-medium text-text-neutral hover:text-primary transition-colors" href="/history">
+            <a className="w-full sm:w-auto text-center px-6 py-3 text-sm font-medium text-primary/70 hover:text-primary transition-colors" href="/history">
               View History
             </a>
           </div>

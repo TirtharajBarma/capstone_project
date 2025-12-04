@@ -10,6 +10,11 @@ const predictionSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  searchTimestamp: {
+    type: Number, // Unix timestamp when search was initiated (client-side)
+    default: null,
+    index: true
+  },
   predictedBreed: {
     type: String,
     required: true,

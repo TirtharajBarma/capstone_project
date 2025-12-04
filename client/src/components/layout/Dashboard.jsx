@@ -80,7 +80,7 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
         {/* State: Default (Upload) */}
         {currentState === 'default' && (
           <div 
-            className={`w-full max-w-2xl transition-all duration-200 ${dragOver ? 'scale-[1.02] ring-2 ring-custom-teal' : ''}`}
+            className={`w-full max-w-2xl transition-all duration-200 ${dragOver ? 'scale-[1.02] ring-2 ring-primary' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -101,7 +101,7 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
                 />
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-custom-teal px-6 text-sm font-bold text-white shadow-sm hover:bg-opacity-90 sm:w-auto"
+                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-sm hover:bg-opacity-90 sm:w-auto"
                 >
                   <span className="truncate">Choose File</span>
                 </button>
@@ -149,7 +149,7 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
             <div className="flex justify-center">
                 <button 
                   onClick={handleAnalyze}
-                  className="flex h-12 min-w-[84px] w-full max-w-md cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-custom-teal px-6 text-base font-bold tracking-wide text-white shadow-md hover:bg-opacity-90"
+                  className="flex h-12 min-w-[84px] w-full max-w-md cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-primary px-6 text-base font-bold tracking-wide text-white shadow-md hover:bg-opacity-90"
                 >
                   <span className="truncate">Analyze Breed</span>
                 </button>
@@ -161,13 +161,13 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
         {currentState === 'loading' && (
           <div className="w-full max-w-2xl flex flex-col gap-6">
             <div className="flex flex-col items-center gap-6 rounded-xl border border-gray-200 bg-white px-6 py-14 text-center shadow-sm">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-custom-teal border-t-transparent"></div>
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
               <div className="flex max-w-md flex-col items-center gap-2">
                 <p className="text-lg font-bold text-custom-text">Analyzing Image...</p>
                 <p className="text-sm text-gray-500">Please wait while we identify the breed. This may take a moment.</p>
               </div>
               <div className="mt-4 w-full max-w-sm rounded-full bg-gray-200 h-2.5">
-                <div className="bg-custom-teal h-2.5 rounded-full" style={{ width: '45%' }}></div>
+                <div className="bg-primary h-2.5 rounded-full" style={{ width: '45%' }}></div>
               </div>
             </div>
           </div>

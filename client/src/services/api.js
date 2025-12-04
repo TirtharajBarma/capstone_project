@@ -9,12 +9,28 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for adding auth tokens
+// Store for Clerk's getToken function (will be set by ClerkTokenProvider)
+let clerkGetToken = null;
+
+// Function to set Clerk's getToken function
+export const setClerkTokenGetter = (getTokenFn) => {
+  clerkGetToken = getTokenFn;
+};
+
+// Request interceptor for adding Clerk auth tokens
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    // Get fresh token from Clerk if available
+    if (clerkGetToken) {
+      try {
+        const token = await clerkGetToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (err) {
+        // User might not be signed in, continue without token
+        console.debug('No Clerk token available:', err.message);
+      }
     }
     return config;
   },
@@ -28,10 +44,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Let Clerk handle sign-out - don't redirect manually
+      console.warn('Unauthorized request - user may need to sign in');
     }
     return Promise.reject(error);
   }
@@ -65,6 +79,21 @@ export const predictionAPI = {
     }
 
     const response = await api.post('/predict', formData, config);
+    return response.data;
+  },
+
+  // Upload image to Cloudinary
+  uploadImage: async (imageFile) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+
+    const response = await api.post('/upload', formData, config);
     return response.data;
   },
 

@@ -1,20 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #084887;
+  --color-primary: #1A535C;
   --color-secondary: #F58A07;
   --color-accent: #F9AB55;
-  --color-background-light: #F7F5FB;
-  --color-background-dark: #0a0a0f;
-  --color-text-neutral: #909CC2;
-  --color-custom-teal: #1A535C;
-  --color-custom-coral: #FF6B6B;
-  --color-custom-background: #F7F7F7;
-  --color-custom-text: #171717;
-  --color-custom-success: #4CAF50;
-  --color-custom-error: #D32F2F;
+  
+  --color-bg-primary: #F5EADF;
+  --color-bg-card: #FFFFFF;
+  --color-bg-card-subtle: #FDFBF9;
 
-  --font-display: "Space Grotesk", sans-serif;
+  --font-display: anthropicSerif, "anthropicSerif Fallback", Georgia, "Times New Roman", Times, serif;
 
   --radius: 0.25rem;
   --radius-lg: 0.5rem;
@@ -24,7 +19,8 @@
 
 @layer base {
   body {
-    @apply font-display bg-background-light text-gray-800;
+    @apply font-display bg-bg-primary text-primary;
+    font-weight: 360;
   }
 }
 
@@ -42,8 +38,8 @@
   /* Material 3 Buttons */
   .btn-filled {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-md active:shadow-none disabled:opacity-50 disabled:pointer-events-none;
-    background-color: var(--md-sys-color-primary);
-    color: var(--md-sys-color-on-primary);
+    background-color: var(--color-primary);
+    color: white;
   }
   .btn-filled:hover {
     opacity: 0.9;
@@ -52,72 +48,77 @@
 
   .btn-outlined {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium border transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
-    border-color: var(--md-sys-color-outline);
-    color: var(--md-sys-color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
   .btn-outlined:hover {
-    background-color: var(--md-sys-color-secondary-container);
+    background-color: var(--color-bg-card-subtle);
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium transition-colors duration-200;
-    color: var(--md-sys-color-on-surface);
+    color: var(--color-primary);
   }
   .btn-ghost:hover {
-    background-color: var(--md-sys-color-secondary-container);
+    background-color: var(--color-bg-card-subtle);
   }
 
   /* Material 3 Cards */
   .card-elevated {
     @apply rounded-3xl p-6 transition-all duration-300;
-    background-color: var(--md-sys-color-surface);
-    color: var(--md-sys-color-on-surface);
+    background-color: var(--color-bg-card);
+    color: var(--color-primary);
     box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   }
   .dark .card-elevated {
-    background-color: var(--md-sys-color-surface-variant);
+    background-color: var(--color-primary); /* Fallback for dark mode if needed, though not fully defined */
     box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.5);
   }
 
   .card-outlined {
     @apply rounded-3xl p-6 border transition-all duration-300;
     background-color: transparent;
-    border-color: var(--md-sys-color-outline);
-    color: var(--md-sys-color-on-surface);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
   /* Navigation */
   .navbar-material {
-    @apply sticky top-0 z-50 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-300;
+    @apply sticky top-0 z-50 w-full bg-bg-card/90 backdrop-blur-md border-b border-primary/10 transition-colors duration-300;
   }
 
   .nav-link {
     @apply relative px-4 py-2 text-sm font-medium rounded-full transition-colors duration-200;
-    color: var(--md-sys-color-on-surface-variant);
+    color: var(--color-primary);
+    opacity: 0.7;
   }
   .nav-link:hover, .nav-link.active {
-    background-color: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
+    background-color: var(--color-bg-card-subtle);
+    color: var(--color-primary);
+    opacity: 1;
   }
 
   /* Upload Area */
   .upload-area {
     @apply relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 cursor-pointer overflow-hidden;
-    border-color: var(--md-sys-color-outline);
-    background-color: var(--md-sys-color-surface);
+    border-color: var(--color-primary);
+    background-color: var(--color-bg-card);
+    opacity: 0.8;
   }
   .upload-area:hover, .upload-area.drag-over {
-    border-color: var(--md-sys-color-primary);
-    background-color: var(--md-sys-color-secondary-container);
+    border-color: var(--color-primary);
+    background-color: var(--color-bg-card-subtle);
+    opacity: 1;
   }
 }
 
 @layer utilities {
   .text-on-surface {
-    color: var(--md-sys-color-on-surface);
+    color: var(--color-primary);
   }
   .text-on-surface-variant {
-    color: var(--md-sys-color-on-surface-variant);
+    color: var(--color-primary);
+    opacity: 0.7;
   }
   
   .animate-enter {
@@ -139,7 +140,7 @@
 .loading-dots div {
   width: 8px;
   height: 8px;
-  background-color: var(--md-sys-color-primary);
+  background-color: var(--color-primary);
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }

@@ -15,12 +15,12 @@ const Button = React.forwardRef(({
   const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
-    default: 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white hover:shadow-glow transform hover:scale-105',
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg hover:shadow-glow',
+    default: 'bg-primary text-white hover:opacity-90 hover:shadow-glow transform hover:scale-105',
+    primary: 'bg-primary text-white hover:opacity-90 shadow-lg hover:shadow-glow',
     secondary: 'bg-secondary-600 text-white hover:bg-secondary-700 shadow-lg hover:shadow-glow-purple',
-    outline: 'border-2 border-primary-300 text-primary-700 hover:bg-primary-50 hover:border-primary-500',
-    ghost: 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900',
-    neumorph: 'neumorph-card text-neutral-700 hover:shadow-neumorph-inset',
+    outline: 'border-2 border-primary text-primary hover:bg-bg-card-subtle',
+    ghost: 'text-primary hover:bg-bg-card-subtle hover:text-primary',
+    neumorph: 'neumorph-card text-primary hover:shadow-neumorph-inset',
     glass: 'glass-card text-white hover:bg-white/20',
   };
   

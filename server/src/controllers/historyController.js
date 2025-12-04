@@ -305,6 +305,7 @@ export const getPredictionStats = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
+      message: 'Statistics retrieved successfully',
       data: result
     });
   } catch (error) {
@@ -361,6 +362,7 @@ export const getRecentPredictions = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
+      message: 'Recent predictions retrieved successfully',
       data: predictionsWithVirtuals
     });
   } catch (error) {

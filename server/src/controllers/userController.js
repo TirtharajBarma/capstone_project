@@ -167,13 +167,16 @@ export const getUserAnalytics = async (req, res) => {
           species: pred.species 
         }).select('imageUrl');
         
+        const imageToUse = pred.imageUrl || breed?.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed);
+
         return {
           id: pred._id,
           breed: pred.predictedBreed,
           species: pred.species,
           confidence: Math.round(pred.confidence * 100),
           timestamp: pred.createdAt,
-          imageUrl: breed?.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed)
+          breedImage: imageToUse, // Frontend expects breedImage
+          imageUrl: imageToUse // For consistency
         };
       })
     );

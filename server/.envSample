@@ -5,6 +5,10 @@ NODE_ENV=
 # MongoDB Atlas Configuration
 MONGODB_URI=""
 
+# Clerk Authentication
+CLERK_SECRET_KEY=
+CLERK_WEBHOOK_SECRET=
+
 # ML Model API Configuration
 MODEL_API_URL=
 MODEL_API_TIMEOUT=30000
