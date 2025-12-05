@@ -14,8 +14,8 @@ export default function TabsLayout() {
       backgroundColor={null}
       blurEffect="systemMaterial"
       tintColor={DynamicColorIOS({
-        dark: '#4ce680',
-        light: '#4ce680',
+        dark: '#D1E4D5',
+        light: '#7EC8A3',
       })}
       labelStyle={{
         color: DynamicColorIOS({

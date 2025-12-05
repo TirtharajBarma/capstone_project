@@ -115,7 +115,7 @@ export default function Analytics() {
           })}
           <SvgText
             x={centerX}
-            y={centerY - 10}
+            y={centerY + 4}
             textAnchor="middle"
             fontSize="36"
             fontWeight="bold"
@@ -125,7 +125,7 @@ export default function Analytics() {
           </SvgText>
           <SvgText
             x={centerX}
-            y={centerY + 15}
+            y={centerY + 25}
             textAnchor="middle"
             fontSize="14"
             fill="#6B7280"
