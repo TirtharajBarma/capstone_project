@@ -138,6 +138,7 @@ export const getUserStats = async (req, res) => {
 export const getUserAnalytics = async (req, res) => {
   try {
     const { clerkId } = req.params;
+    const { filter } = req.query; // 'all', 'cow', 'buffalo'
     
     const user = await User.findOne({ clerkId });
     
@@ -151,8 +152,16 @@ export const getUserAnalytics = async (req, res) => {
     // Import Prediction and Breed models
     const { Prediction, Breed } = await import('../models/index.js');
 
+    // Build query based on filter
+    const query = { userId: user._id };
+    if (filter === 'cow') {
+      query.species = 'cattle'; // Map 'cow' to 'cattle'
+    } else if (filter === 'buffalo') {
+      query.species = 'buffalo';
+    }
+
     // Get user's predictions
-    const predictions = await Prediction.find({ userId: user._id })
+    const predictions = await Prediction.find(query)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -162,6 +171,35 @@ export const getUserAnalytics = async (req, res) => {
     const accuracyRate = predictions.length > 0
       ? (predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length) * 100
       : 0;
+
+    // Species counts (from all predictions, not filtered)
+    const allPredictions = await Prediction.find({ userId: user._id }).lean();
+    const cowCount = allPredictions.filter(p => p.species === 'cattle').length;
+    const buffaloCount = allPredictions.filter(p => p.species === 'buffalo').length;
+
+    // Calculate breed breakdown with counts and percentages
+    const breedCounts = {};
+    predictions.forEach(pred => {
+      const breedKey = pred.predictedBreed;
+      if (!breedCounts[breedKey]) {
+        breedCounts[breedKey] = {
+          breed: pred.predictedBreed,
+          species: pred.species,
+          count: 0
+        };
+      }
+      breedCounts[breedKey].count += 1;
+    });
+
+    const breedBreakdown = Object.values(breedCounts)
+      .map(item => ({
+        ...item,
+        percentage: totalAnalyses > 0 ? Math.round((item.count / totalAnalyses) * 100) : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Top 5 breeds
+    const topBreeds = breedBreakdown.slice(0, 5);
 
     // Get recent recognitions (last 8) with breed images
     const recentPredictions = predictions.slice(0, 8);
@@ -180,8 +218,8 @@ export const getUserAnalytics = async (req, res) => {
           species: pred.species,
           confidence: Math.round(pred.confidence * 100),
           timestamp: pred.createdAt,
-          breedImage: imageToUse, // Frontend expects breedImage
-          imageUrl: imageToUse // For consistency
+          breedImage: imageToUse,
+          imageUrl: imageToUse
         };
       })
     );
@@ -192,6 +230,10 @@ export const getUserAnalytics = async (req, res) => {
         totalAnalyses,
         uniqueBreeds,
         accuracyRate: Math.round(accuracyRate * 10) / 10,
+        cowCount,
+        buffaloCount,
+        breedBreakdown,
+        topBreeds,
         recentRecognitions
       }
     });

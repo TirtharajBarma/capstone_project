@@ -7,15 +7,14 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Image
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useAuth, useClerk } from '@clerk/clerk-expo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useUserContext } from '../context/UserContext';
-import { userAPI } from '../api/client';
+import { useUserContext } from '../../context/UserContext';
+import { userAPI } from '../../api/client';
 
 // Custom Components defined inline to ensure exact styling match
 const StatCard = ({ title, value, backgroundColor, fullWidth }) => (
@@ -81,8 +80,8 @@ export default function ProfileScreen() {
 
   const handleEditProfile = () => router.push('/edit-profile');
   const handleAppSettings = () => Alert.alert('App Settings', 'Coming soon!');
-  const handleHelpSupport = () => Alert.alert('Help & Support', 'Coming soon!');
-  const handlePrivacyPolicy = () => Alert.alert('Privacy Policy', 'Coming soon!');
+  const handleHelpSupport = () => router.push('/help-support');
+  const handlePrivacyPolicy = () => router.push('/privacy-policy');
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [
@@ -107,19 +106,20 @@ export default function ProfileScreen() {
   const imageUrl = clerkUser?.imageUrl;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
       <Stack.Screen options={{ headerShown: false }} />
       
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={{ width: 24 }} />
+        {/* <Text style={styles.headerTitle}>Profile</Text> */}
         <View style={{ width: 24 }} /> 
       </View>
 
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.contentContainer}
+        contentInsetAdjustmentBehavior="automatic"
+      >
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.imageContainer}>
@@ -174,12 +174,12 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#FAF8F6', // Light background
   },
@@ -190,6 +190,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: '#FAF8F6',
+    paddingTop: 75,      
+    paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 18,
@@ -197,7 +199,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 5,
   },
   profileSection: {
     alignItems: 'center',

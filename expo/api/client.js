@@ -74,8 +74,8 @@ export const userAPI = {
     return response.data;
   },
 
-  getAnalytics: async (clerkId) => {
-    const response = await api.get(`/users/analytics/${clerkId}`);
+  getAnalytics: async (clerkId, filter = 'all') => {
+    const response = await api.get(`/users/analytics/${clerkId}?filter=${filter}`);
     return response.data;
   },
 };
@@ -92,8 +92,8 @@ export const predictionAPI = {
   },
 
   getHistory: async (clerkId, limit = 10, skip = 0) => {
-    const response = await api.get(`/predictions/history/${clerkId}`, {
-      params: { limit, skip },
+    const response = await api.get('/history', {
+      params: { limit, page: 1 },
     });
     return response.data;
   },
