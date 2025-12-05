@@ -1,4 +1,6 @@
 import User from '../models/User.js';
+import Prediction from '../models/Prediction.js';
+import Breed from '../models/Breed.js';
 
 // Get or create user profile
 export const getUserProfile = async (req, res) => {
@@ -101,10 +103,12 @@ export const updateUserPreferences = async (req, res) => {
 export const getUserStats = async (req, res) => {
   try {
     const { clerkId } = req.params;
+    console.log(`Getting stats for user: ${clerkId}`);
     
     const user = await User.findOne({ clerkId });
     
     if (!user) {
+      console.log(`User not found: ${clerkId}`);
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -114,8 +118,8 @@ export const getUserStats = async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalPredictions: user.stats.totalPredictions,
-        lastActive: user.stats.lastActive,
+        totalPredictions: user.stats?.totalPredictions || 0,
+        lastActive: user.stats?.lastActive || user.updatedAt,
         memberSince: user.createdAt,
         role: user.role
       }
@@ -124,7 +128,8 @@ export const getUserStats = async (req, res) => {
     console.error('Get user stats error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };

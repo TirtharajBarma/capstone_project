@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Cattle Breed Identifier",
+    "slug": "cattle-breed-identifier",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "cattle-breed-identifier",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF8F5"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.cattlebreedidentifier",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "We use Face ID to securely unlock your app and protect your data."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF8F5"
+      },
+      "package": "com.yourcompany.cattlebreedidentifier"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Cattle Breed Identifier to use Face ID to securely unlock your app."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
