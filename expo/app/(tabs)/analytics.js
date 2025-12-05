@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUserContext } from '../../context/UserContext';
 import { userAPI } from '../../api/client';
@@ -18,6 +19,7 @@ import { Svg, Circle, Text as SvgText } from 'react-native-svg';
 const { width } = Dimensions.get('window');
 
 export default function Analytics() {
+  const router = useRouter();
   const { clerkUser } = useUserContext();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -281,7 +283,30 @@ export default function Analytics() {
       <View style={styles.recentSection}>
         <Text style={styles.sectionTitle}>5 Latest Recent Submissions</Text>
         {data?.recentRecognitions?.slice(0, 5).map((item, index) => (
-          <View key={item.id || index} style={styles.recentItem}>
+          <TouchableOpacity 
+            key={item.id || index} 
+            style={styles.recentItem}
+            activeOpacity={0.8}
+            onPress={() => {
+              // Navigate to results page with complete prediction data
+              router.push({
+                pathname: '/results',
+                params: {
+                  prediction: JSON.stringify({
+                    breed: item.breed,
+                    species: item.species,
+                    confidence: item.confidence / 100, // Convert back to 0-1 range
+                    topPredictions: item.topPredictions, // Use backend data directly with complete breedInfo
+                    inferenceTime: item.inferenceTime,
+                    isFavorite: item.isFavorite || false,
+                  }),
+                  imageUrl: item.imageUrl || item.breedImage,
+                  predictionId: item.id,
+                  source: 'analytics', // Track source page for back navigation
+                },
+              });
+            }}
+          >
             <Image
               source={{ uri: item.imageUrl || item.breedImage }}
               style={styles.recentImage}
@@ -304,7 +329,7 @@ export default function Analytics() {
               <Text style={styles.confidenceValue}>{item.confidence}%</Text>
               <Text style={styles.confidenceLabel}>Confidence</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </ScrollView>

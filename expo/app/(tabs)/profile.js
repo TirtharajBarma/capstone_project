@@ -62,13 +62,13 @@ export default function ProfileScreen() {
 
     try {
       setLoading(true);
-      // Use getAnalytics to get the calculated stats including unique breeds
+      // Use getAnalytics to get the calculated stats including unique breeds and favorites
       const response = await userAPI.getAnalytics(userId);
       if (response.success) {
         setStats({
           scansMade: response.data.totalAnalyses || 0,
           breedsIdentified: response.data.uniqueBreeds || 0,
-          favoritesSaved: 0, // Not currently returned by analytics endpoint
+          favoritesSaved: response.data.totalFavorites || 0,
         });
       }
     } catch (error) {

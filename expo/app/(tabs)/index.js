@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Image,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ export default function HomeScreen() {
   const { clerkUser } = useUserContext();
   const [recentScans, setRecentScans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadRecentScans();
@@ -43,6 +45,12 @@ export default function HomeScreen() {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadRecentScans();
+    setRefreshing(false);
+  };
+
   const firstName = clerkUser?.firstName || 'User';
 
   return (
@@ -51,6 +59,14 @@ export default function HomeScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#7EC8A3"
+            colors={['#7EC8A3']}
+          />
+        }
       >
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
@@ -117,7 +133,35 @@ export default function HomeScreen() {
           style={styles.recentScansScroll}
         >
           {recentScans.map((scan, index) => (
-            <TouchableOpacity key={index} style={styles.scanCard} activeOpacity={0.9}>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.scanCard} 
+              activeOpacity={0.9}
+              onPress={() => {
+                // Navigate to results page with complete scan data
+                const topPredictions = scan.modelMetadata?.topPredictions || [{
+                  breed: scan.predictedBreed,
+                  confidence: scan.confidence,
+                }];
+
+                router.push({
+                  pathname: '/results',
+                  params: {
+                    prediction: JSON.stringify({
+                      breed: scan.predictedBreed,
+                      species: scan.species,
+                      confidence: scan.confidence,
+                      topPredictions: topPredictions,
+                      inferenceTime: scan.modelMetadata?.inferenceTime,
+                      isFavorite: scan.isFavorite || false,
+                    }),
+                    imageUrl: scan.imageUrl,
+                    predictionId: scan._id || scan.id,
+                    source: 'home', // Track source page for back navigation
+                  },
+                });
+              }}
+            >
               <View style={styles.scanImageContainer}>
                 <Image
                   source={{ uri: scan.imageUrl || 'https://via.placeholder.com/176x132' }}
@@ -139,6 +183,11 @@ export default function HomeScreen() {
                     {new Date(scan.createdAt).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
+                    })}
+                    {', '}
+                    {new Date(scan.createdAt).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
                     })}
                   </Text>
                 </View>

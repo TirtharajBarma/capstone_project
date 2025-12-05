@@ -381,3 +381,74 @@ export const savePrediction = asyncHandler(async (req, res) => {
     });
   }
 });
+
+// @desc    Toggle favorite status for a prediction
+// @route   PUT /api/predict/:id/favorite
+// @access  Private (requires user)
+export const toggleFavorite = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { clerkId, isFavorite } = req.body;
+
+  if (!clerkId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Clerk ID is required'
+    });
+  }
+
+  try {
+    // Find user
+    const user = await User.findOne({ clerkId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Find prediction and verify ownership
+    const prediction = await Prediction.findOne({ _id: id, userId: user._id });
+    if (!prediction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prediction not found or unauthorized'
+      });
+    }
+
+    // Toggle favorite status
+    const newFavoriteStatus = typeof isFavorite === 'boolean' ? isFavorite : !prediction.isFavorite;
+    const wasFavorite = prediction.isFavorite;
+    
+    prediction.isFavorite = newFavoriteStatus;
+    await prediction.save();
+
+    // Update user's favorite count
+    if (newFavoriteStatus && !wasFavorite) {
+      // Added to favorites
+      await User.findByIdAndUpdate(user._id, {
+        $inc: { 'stats.totalFavorites': 1 }
+      });
+    } else if (!newFavoriteStatus && wasFavorite) {
+      // Removed from favorites
+      await User.findByIdAndUpdate(user._id, {
+        $inc: { 'stats.totalFavorites': -1 }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        predictionId: prediction._id,
+        isFavorite: prediction.isFavorite
+      },
+      message: prediction.isFavorite ? 'Added to favorites' : 'Removed from favorites'
+    });
+  } catch (error) {
+    console.error('Toggle favorite error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to toggle favorite',
+      error: error.message
+    });
+  }
+});

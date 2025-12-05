@@ -201,16 +201,72 @@ export const getUserAnalytics = async (req, res) => {
     // Top 5 breeds
     const topBreeds = breedBreakdown.slice(0, 5);
 
-    // Get recent recognitions (last 8) with breed images
+    // Get recent recognitions (last 8) with breed images and complete data
     const recentPredictions = predictions.slice(0, 8);
     const recentRecognitions = await Promise.all(
       recentPredictions.map(async (pred) => {
-        const breed = await Breed.findOne({ 
-          name: pred.predictedBreed,
-          species: pred.species 
-        }).select('imageUrl');
+        const imageToUse = pred.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed);
+
+        // Build enriched topPredictions array with complete breedInfo for each prediction
+        let enrichedTopPredictions = [];
         
-        const imageToUse = pred.imageUrl || breed?.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed);
+        if (pred.modelMetadata?.topPredictions && Array.isArray(pred.modelMetadata.topPredictions)) {
+          // Enrich existing topPredictions with breed info
+          enrichedTopPredictions = await Promise.all(
+            pred.modelMetadata.topPredictions.map(async (topPred) => {
+              const breed = await Breed.findOne({ 
+                name: topPred.breed,
+                species: pred.species 
+              }).select('name species origin description traits characteristics location');
+              
+              const breedInfo = breed ? {
+                name: breed.name,
+                species: breed.species,
+                origin: breed.origin || null,
+                description: breed.description || null,
+                traits: Array.isArray(breed.traits) ? breed.traits : [],
+                characteristics: {
+                  size: breed.characteristics?.size || null,
+                  color: Array.isArray(breed.characteristics?.color) ? breed.characteristics.color : [],
+                  horns: breed.characteristics?.horns || null
+                },
+                location: breed.location || null
+              } : null;
+
+              return {
+                breed: topPred.breed,
+                confidence: topPred.confidence,
+                breedInfo: breedInfo
+              };
+            })
+          );
+        } else {
+          // Create topPredictions for old records
+          const breed = await Breed.findOne({ 
+            name: pred.predictedBreed,
+            species: pred.species 
+          }).select('name species origin description traits characteristics location');
+          
+          const breedInfo = breed ? {
+            name: breed.name,
+            species: breed.species,
+            origin: breed.origin || null,
+            description: breed.description || null,
+            traits: Array.isArray(breed.traits) ? breed.traits : [],
+            characteristics: {
+              size: breed.characteristics?.size || null,
+              color: Array.isArray(breed.characteristics?.color) ? breed.characteristics.color : [],
+              horns: breed.characteristics?.horns || null
+            },
+            location: breed.location || null
+          } : null;
+
+          enrichedTopPredictions = [{ 
+            breed: pred.predictedBreed, 
+            confidence: pred.confidence,
+            breedInfo: breedInfo
+          }];
+        }
 
         return {
           id: pred._id,
@@ -219,7 +275,10 @@ export const getUserAnalytics = async (req, res) => {
           confidence: Math.round(pred.confidence * 100),
           timestamp: pred.createdAt,
           breedImage: imageToUse,
-          imageUrl: imageToUse
+          imageUrl: imageToUse,
+          isFavorite: pred.isFavorite || false,
+          topPredictions: enrichedTopPredictions,
+          inferenceTime: pred.modelMetadata?.inferenceTime
         };
       })
     );
@@ -232,6 +291,7 @@ export const getUserAnalytics = async (req, res) => {
         accuracyRate: Math.round(accuracyRate * 10) / 10,
         cowCount,
         buffaloCount,
+        totalFavorites: user.stats?.totalFavorites || 0,
         breedBreakdown,
         topBreeds,
         recentRecognitions

@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
+    totalFavorites: {
+      type: Number,
+      default: 0
+    },
     lastActive: {
       type: Date,
       default: Date.now

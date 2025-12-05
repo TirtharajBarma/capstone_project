@@ -98,11 +98,78 @@ export const getPredictionHistory = asyncHandler(async (req, res) => {
 
     const totalPages = Math.ceil(total / parseInt(limit));
 
-    // Add virtual fields manually since we're using lean()
-    const predictionsWithVirtuals = predictions.map(prediction => ({
-      ...prediction,
-      confidencePercentage: Math.round(prediction.confidence * 100 * 100) / 100,
-      timeAgo: getTimeAgo(prediction.createdAt)
+    // Import Breed model to enrich predictions with breed info
+    const { Breed } = await import('../models/index.js');
+
+    // Enrich predictions with breed info and add virtual fields
+    const predictionsWithVirtuals = await Promise.all(predictions.map(async (prediction) => {
+      // Fetch breed info for this prediction
+      const breed = await Breed.findOne({ 
+        name: prediction.predictedBreed,
+        species: prediction.species 
+      }).select('name species origin description traits characteristics location').lean();
+
+      // Build breedInfo object
+      const breedInfo = breed ? {
+        name: breed.name,
+        species: breed.species,
+        origin: breed.origin || null,
+        description: breed.description || null,
+        traits: Array.isArray(breed.traits) ? breed.traits : [],
+        characteristics: {
+          size: breed.characteristics?.size || null,
+          color: Array.isArray(breed.characteristics?.color) ? breed.characteristics.color : [],
+          horns: breed.characteristics?.horns || null
+        },
+        location: breed.location || null
+      } : null;
+
+      // Enrich topPredictions with breedInfo if not already present
+      let enrichedTopPredictions = prediction.modelMetadata?.topPredictions;
+      if (enrichedTopPredictions && enrichedTopPredictions.length > 0) {
+        enrichedTopPredictions = await Promise.all(enrichedTopPredictions.map(async (tp) => {
+          if (tp.breedInfo) return tp; // Already has breed info
+          
+          const tpBreed = await Breed.findOne({ 
+            name: tp.breed,
+            species: prediction.species 
+          }).select('name species origin description traits characteristics location').lean();
+
+          return {
+            ...tp,
+            breedInfo: tpBreed ? {
+              name: tpBreed.name,
+              species: tpBreed.species,
+              origin: tpBreed.origin || null,
+              description: tpBreed.description || null,
+              traits: Array.isArray(tpBreed.traits) ? tpBreed.traits : [],
+              characteristics: {
+                size: tpBreed.characteristics?.size || null,
+                color: Array.isArray(tpBreed.characteristics?.color) ? tpBreed.characteristics.color : [],
+                horns: tpBreed.characteristics?.horns || null
+              },
+              location: tpBreed.location || null
+            } : null
+          };
+        }));
+      } else {
+        // Create topPredictions if it doesn't exist
+        enrichedTopPredictions = [{
+          breed: prediction.predictedBreed,
+          confidence: prediction.confidence,
+          breedInfo: breedInfo
+        }];
+      }
+
+      return {
+        ...prediction,
+        confidencePercentage: Math.round(prediction.confidence * 100 * 100) / 100,
+        timeAgo: getTimeAgo(prediction.createdAt),
+        modelMetadata: {
+          ...prediction.modelMetadata,
+          topPredictions: enrichedTopPredictions
+        }
+      };
     }));
 
     res.status(200).json({

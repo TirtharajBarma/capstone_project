@@ -84,6 +84,10 @@ const predictionSchema = new mongoose.Schema({
   isPublic: {
     type: Boolean,
     default: false
+  },
+  isFavorite: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

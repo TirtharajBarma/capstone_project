@@ -83,12 +83,23 @@ export const userAPI = {
 // Prediction API
 export const predictionAPI = {
   predict: async (formData) => {
-    const response = await api.post('/predictions/predict', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    console.log('🔌 [API] Calling predict endpoint...');
+    console.log('🔌 [API] Base URL:', API_URL);
+    
+    try {
+      const response = await api.post('/predict', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('🔌 [API] Response received:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('🔌 [API] Error in predict:', error);
+      console.error('🔌 [API] Error response:', error.response?.data);
+      throw error;
+    }
   },
 
   getHistory: async (clerkId, limit = 10, skip = 0) => {
@@ -107,6 +118,41 @@ export const predictionAPI = {
     const response = await api.delete(`/predictions/${predictionId}`);
     return response.data;
   },
+
+  save: async (predictionData, clerkId) => {
+    const response = await api.post('/predict/save', {
+      predictionData,
+      clerkId
+    });
+    return response.data;
+  },
+
+  toggleFavorite: async (predictionId, clerkId, isFavorite) => {
+    const response = await api.put(`/predict/${predictionId}/favorite`, {
+      clerkId,
+      isFavorite
+    });
+    return response.data;
+  },
+
+  uploadImage: async (formData) => {
+    console.log('🔌 [API] Uploading image to Cloudinary...');
+    
+    try {
+      const response = await api.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('🔌 [API] Upload response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('🔌 [API] Error uploading image:', error);
+      console.error('🔌 [API] Error response:', error.response?.data);
+      throw error;
+    }
+  },
 };
 
 // Breed API
@@ -117,7 +163,7 @@ export const breedAPI = {
   },
 
   getByName: async (name) => {
-    const response = await api.get(`/breeds/${name}`);
+    const response = await api.get(`/breeds/name/${name}`);
     return response.data;
   },
 

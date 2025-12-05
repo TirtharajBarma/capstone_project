@@ -8,11 +8,13 @@ import {
   Dimensions,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { predictionAPI } from '../../api/client';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,6 +25,7 @@ export default function ScanScreen() {
   const [facing, setFacing] = useState('back');
   const [flash, setFlash] = useState('off');
   const [capturedImage, setCapturedImage] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -66,9 +69,82 @@ export default function ScanScreen() {
     setCapturedImage(null);
   };
 
-  const analyzeImage = () => {
-    // TODO: Navigate to results page with image
-    console.log('Analyzing image:', capturedImage);
+  const analyzeImage = async () => {
+    console.log('🚀 [ANALYZE] Function called!');
+    
+    if (!capturedImage) {
+      console.log('❌ [ANALYZE] No captured image');
+      Alert.alert('Error', 'No image to analyze');
+      return;
+    }
+    
+    if (isAnalyzing) {
+      console.log('⏳ [ANALYZE] Already analyzing...');
+      return;
+    }
+    
+    console.log('🔍 [ANALYZE] Starting analysis...');
+    console.log('📸 [ANALYZE] Image URI:', capturedImage);
+    
+    setIsAnalyzing(true);
+    
+    try {
+      console.log('📤 [ANALYZE] Preparing FormData...');
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('image', {
+        uri: capturedImage,
+        type: 'image/jpeg',
+        name: 'cattle-image.jpg',
+      });
+      
+      console.log('🌐 [ANALYZE] Calling prediction API...');
+      
+      // Call prediction API
+      const result = await predictionAPI.predict(formData);
+      
+      console.log('✅ [ANALYZE] API Response:', result);
+      
+      if (result.success) {
+        const predictionData = result.data;
+        
+        console.log('📊 [ANALYZE] Prediction data:', predictionData);
+        
+        // Navigate to results page with real prediction data from backend
+        // Backend returns: breed, species, confidence, topPredictions, inferenceTime
+        router.push({
+          pathname: '/results',
+          params: {
+            prediction: JSON.stringify({
+              breed: predictionData.breed, // Backend uses "breed" not "predictedBreed"
+              species: predictionData.species,
+              confidence: predictionData.confidence,
+              topPredictions: predictionData.topPredictions, // Already includes breedInfo
+              inferenceTime: predictionData.inferenceTime,
+            }),
+            imageUrl: capturedImage,
+            source: 'scan', // Track source page for back navigation
+          },
+        });
+        
+        console.log('🎯 [ANALYZE] Navigating to results page');
+      } else {
+        console.log('❌ [ANALYZE] API returned error:', result.message);
+        Alert.alert('Error', result.message || 'Failed to analyze image');
+      }
+    } catch (error) {
+      console.error('💥 [ANALYZE] Error:', error);
+      console.error('💥 [ANALYZE] Error details:', error.message);
+      console.error('💥 [ANALYZE] Error stack:', error.stack);
+      Alert.alert(
+        'Analysis Failed',
+        'Could not analyze the image. Please try again or check your connection.'
+      );
+    } finally {
+      setIsAnalyzing(false);
+      console.log('🏁 [ANALYZE] Analysis complete');
+    }
   };
 
   const toggleFlash = () => {
@@ -196,11 +272,26 @@ export default function ScanScreen() {
             </View>
 
             <View style={styles.confirmationActions}>
-              <TouchableOpacity style={styles.retakeButton} onPress={retake}>
+              <TouchableOpacity 
+                style={styles.retakeButton} 
+                onPress={retake}
+                disabled={isAnalyzing}
+              >
                 <Text style={styles.retakeButtonText}>Retake</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.analyzeButton} onPress={analyzeImage}>
-                <Text style={styles.analyzeButtonText}>Analyze</Text>
+              <TouchableOpacity 
+                style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonDisabled]} 
+                onPress={analyzeImage}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFF" />
+                    <Text style={styles.analyzeButtonText}>Analyzing...</Text>
+                  </>
+                ) : (
+                  <Text style={styles.analyzeButtonText}>Analyze</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -537,13 +628,18 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: '#664ce6',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
     shadowColor: '#664ce6',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 4,
+  },
+  analyzeButtonDisabled: {
+    opacity: 0.6,
   },
   analyzeButtonText: {
     fontSize: 12,

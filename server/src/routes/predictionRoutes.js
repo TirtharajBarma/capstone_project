@@ -3,7 +3,8 @@ import {
   predictBreed, 
   getPrediction, 
   getModelHealth,
-  savePrediction
+  savePrediction,
+  toggleFavorite
 } from '../controllers/predictionController.js';
 import { uploadSingle, handleUploadError, validateImageUpload } from '../middleware/upload.js';
 
@@ -23,6 +24,11 @@ router.post('/',
 // @desc    Save a previously unpersisted prediction
 // @access  Public
 router.post('/save', savePrediction);
+
+// @route   PUT /api/predict/:id/favorite
+// @desc    Toggle favorite status for a prediction
+// @access  Private
+router.put('/:id/favorite', toggleFavorite);
 
 // @route   GET /api/predict/health
 // @desc    Check ML model service health
