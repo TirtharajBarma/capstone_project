@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { predictionAPI } from '../../api/client';
@@ -26,6 +27,22 @@ export default function ScanScreen() {
   const [flash, setFlash] = useState('off');
   const [capturedImage, setCapturedImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+
+  // Only activate camera when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      // Screen is focused - activate camera
+      setIsCameraActive(true);
+      
+      return () => {
+        // Screen is blurred - deactivate camera
+        setIsCameraActive(false);
+        // Clear captured image when leaving screen
+        setCapturedImage(null);
+      };
+    }, [])
+  );
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -165,23 +182,24 @@ export default function ScanScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Camera View */}
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={flash}
-      >
-        {/* Top Navigation */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Scan Cattle</Text>
-          <TouchableOpacity style={styles.headerButton} onPress={showHelp}>
-            <MaterialCommunityIcons name="help-circle-outline" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+      {/* Only render camera when screen is focused and permission is granted */}
+      {isCameraActive && (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          flash={flash}
+        >
+          {/* Top Navigation */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Scan Cattle</Text>
+            <TouchableOpacity style={styles.headerButton} onPress={showHelp}>
+              <MaterialCommunityIcons name="help-circle-outline" size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
 
         {/* Camera Frame Overlay */}
         <View style={styles.frameContainer}>
@@ -222,7 +240,8 @@ export default function ScanScreen() {
             </Text>
           </View>
         </View>
-      </CameraView>
+        </CameraView>
+      )}
 
       {/* Bottom Controls */}
       <View style={styles.bottomControls}>

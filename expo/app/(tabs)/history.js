@@ -10,7 +10,13 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Share,
+  Modal,
+  Pressable,
+  Platform,
+  Animated,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUserContext } from '../../context/UserContext';
@@ -25,7 +31,16 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPrediction, setSelectedPrediction] = useState(null);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [activeFilter, setActiveFilter] = useState('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [tempFilters, setTempFilters] = useState({
+    species: 'all',
+    confidence: 'all',
+    dateRange: 'all',
+  });
 
   useEffect(() => {
     loadHistory();
@@ -33,7 +48,7 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     filterPredictions();
-  }, [predictions, searchQuery, activeFilter]);
+  }, [predictions, searchQuery, activeFilter, tempFilters]);
 
   const loadHistory = async () => {
     if (!clerkUser?.id) {
@@ -65,13 +80,43 @@ export default function HistoryScreen() {
   const filterPredictions = () => {
     let filtered = [...predictions];
 
-    // Apply species filter
+    // Apply species filter from quick chips
     if (activeFilter === 'cattle') {
       filtered = filtered.filter(p => p.species === 'cattle');
     } else if (activeFilter === 'buffalo') {
       filtered = filtered.filter(p => p.species === 'buffalo');
     } else if (activeFilter === 'high') {
-      filtered = filtered.filter(p => p.confidence >= 0.9);
+      filtered = filtered.filter(p => p.confidence >= 0.7);
+    }
+
+    // Apply advanced filters from modal
+    if (tempFilters.species !== 'all') {
+      filtered = filtered.filter(p => p.species === tempFilters.species);
+    }
+
+    if (tempFilters.confidence === 'high') {
+      filtered = filtered.filter(p => p.confidence >= 0.7);
+    } else if (tempFilters.confidence === 'medium') {
+      filtered = filtered.filter(p => p.confidence >= 0.2 && p.confidence < 0.7);
+    } else if (tempFilters.confidence === 'low') {
+      filtered = filtered.filter(p => p.confidence < 0.2);
+    }
+
+    if (tempFilters.dateRange !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      if (tempFilters.dateRange === 'today') {
+        filtered = filtered.filter(p => new Date(p.createdAt) >= today);
+      } else if (tempFilters.dateRange === 'week') {
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(p => new Date(p.createdAt) >= weekAgo);
+      } else if (tempFilters.dateRange === 'month') {
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        filtered = filtered.filter(p => new Date(p.createdAt) >= monthAgo);
+      }
     }
 
     // Apply search filter
@@ -117,10 +162,24 @@ export default function HistoryScreen() {
     return groups;
   };
 
+  const handleShare = async (prediction) => {
+    try {
+      const message = `Check out this ${prediction.species} breed: ${prediction.predictedBreed} (${Math.round(prediction.confidence * 100)}% confidence)`;
+      
+      await Share.share({
+        message: message,
+        url: prediction.imageUrl,
+        title: `${prediction.predictedBreed} - Cattle Identifier`,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   const handleDelete = async (predictionId) => {
     Alert.alert(
       'Delete Prediction',
-      'Are you sure you want to delete this prediction?',
+      'Are you sure you want to delete this prediction? This will permanently remove it from your history and delete the image from storage.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -128,16 +187,57 @@ export default function HistoryScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await predictionAPI.deletePrediction(predictionId);
-              setPredictions(prev => prev.filter(p => p._id !== predictionId));
+              const response = await predictionAPI.delete(predictionId);
+              if (response.success) {
+                setPredictions(prev => prev.filter(p => p._id !== predictionId));
+                Alert.alert('Success', 'Prediction deleted successfully');
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete prediction');
+              }
             } catch (error) {
               console.error('Error deleting prediction:', error);
-              Alert.alert('Error', 'Failed to delete prediction');
+              const errorMessage = error.response?.data?.message || 'Failed to delete prediction. Please try again.';
+              Alert.alert('Error', errorMessage);
             }
           },
         },
       ]
     );
+  };
+
+  const showActionSheet = (prediction, event) => {
+    // Use nativeEvent.pageY and pageX for absolute positioning
+    const { pageX, pageY } = event.nativeEvent;
+    
+    setMenuPosition({
+      x: pageX - 250, // Menu width is 250, so position it to the left of touch point
+      y: pageY - 5,  // Slightly above the touch point
+    });
+    setSelectedPrediction(prediction);
+    setShowActionModal(true);
+  };
+
+  const closeActionModal = () => {
+    setShowActionModal(false);
+    setTimeout(() => setSelectedPrediction(null), 300);
+  };
+
+  const handleActionShare = () => {
+    closeActionModal();
+    setTimeout(() => {
+      if (selectedPrediction) {
+        handleShare(selectedPrediction);
+      }
+    }, 300);
+  };
+
+  const handleActionDelete = () => {
+    closeActionModal();
+    setTimeout(() => {
+      if (selectedPrediction) {
+        handleDelete(selectedPrediction._id);
+      }
+    }, 300);
   };
 
   const getConfidenceColor = (confidence) => {
@@ -232,9 +332,13 @@ export default function HistoryScreen() {
               {Math.round(prediction.confidence * 100)}%
             </Text>
           </View>
+          
           <TouchableOpacity
             style={styles.moreButton}
-            onPress={() => handleDelete(prediction._id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              showActionSheet(prediction, e);
+            }}
           >
             <MaterialCommunityIcons name="dots-vertical" size={20} color="#9CA3AF" />
           </TouchableOpacity>
@@ -263,10 +367,8 @@ export default function HistoryScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color="#1F2937" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Discoveries</Text>
+          <View style={styles.headerButton} />
+          <Text style={styles.headerTitle}>History</Text>
           <View style={styles.headerButton} />
         </View>
         <View style={styles.loadingContainer}>
@@ -282,11 +384,9 @@ export default function HistoryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Discoveries</Text>
-        <TouchableOpacity style={styles.headerButton}>
+        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>History</Text>
+        <TouchableOpacity style={styles.headerButton} onPress={() => setShowFilterModal(true)}>
           <MaterialCommunityIcons name="tune" size={20} color="#1F2937" />
         </TouchableOpacity>
       </View>
@@ -384,6 +484,197 @@ export default function HistoryScreen() {
       >
         <MaterialCommunityIcons name="camera" size={28} color="#FFFFFF" />
       </TouchableOpacity>
+
+      {/* Liquid Glass Action Menu */}
+      <Modal
+        visible={showActionModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeActionModal}
+      >
+        <Pressable style={styles.glassModalOverlay} onPress={closeActionModal}>
+          <View 
+            style={[
+              styles.glassMenuContainer,
+              {
+                position: 'absolute',
+                top: menuPosition.y,
+                left: menuPosition.x,
+              }
+            ]}
+          >
+            <BlurView intensity={95} tint="dark" style={styles.glassMenu}>
+              <TouchableOpacity
+                style={styles.glassMenuItem}
+                activeOpacity={0.7}
+                onPress={handleActionShare}
+              >
+                <MaterialCommunityIcons name="share-variant-outline" size={20} color="#FFF" />
+                <Text style={styles.glassMenuText}>Share</Text>
+              </TouchableOpacity>
+
+              <View style={styles.glassMenuDivider} />
+
+              <TouchableOpacity
+                style={styles.glassMenuItem}
+                activeOpacity={0.7}
+                onPress={handleActionDelete}
+              >
+                <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FF453A" />
+                <Text style={[styles.glassMenuText, styles.deleteMenuText]}>Delete</Text>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowFilterModal(false)}>
+          <Pressable style={styles.filterModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHandle} />
+            
+            <Text style={styles.filterModalTitle}>Filter History</Text>
+
+            {/* Species Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Species</Text>
+              <View style={styles.filterOptions}>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.species === 'all' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, species: 'all' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.species === 'all' && styles.filterOptionTextActive]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.species === 'cattle' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, species: 'cattle' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.species === 'cattle' && styles.filterOptionTextActive]}>
+                    Cattle
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.species === 'buffalo' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, species: 'buffalo' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.species === 'buffalo' && styles.filterOptionTextActive]}>
+                    Buffalo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Confidence Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Confidence Level</Text>
+              <View style={styles.filterOptions}>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.confidence === 'all' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, confidence: 'all' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.confidence === 'all' && styles.filterOptionTextActive]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.confidence === 'high' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, confidence: 'high' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.confidence === 'high' && styles.filterOptionTextActive]}>
+                    High (70%+)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.confidence === 'medium' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, confidence: 'medium' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.confidence === 'medium' && styles.filterOptionTextActive]}>
+                    Medium (20-70%)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.confidence === 'low' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, confidence: 'low' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.confidence === 'low' && styles.filterOptionTextActive]}>
+                    Low (&lt;20%)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Date Range Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Date Range</Text>
+              <View style={styles.filterOptions}>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.dateRange === 'all' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, dateRange: 'all' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.dateRange === 'all' && styles.filterOptionTextActive]}>
+                    All Time
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.dateRange === 'today' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, dateRange: 'today' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.dateRange === 'today' && styles.filterOptionTextActive]}>
+                    Today
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.dateRange === 'week' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, dateRange: 'week' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.dateRange === 'week' && styles.filterOptionTextActive]}>
+                    This Week
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, tempFilters.dateRange === 'month' && styles.filterOptionActive]}
+                  onPress={() => setTempFilters({ ...tempFilters, dateRange: 'month' })}
+                >
+                  <Text style={[styles.filterOptionText, tempFilters.dateRange === 'month' && styles.filterOptionTextActive]}>
+                    This Month
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.filterActions}>
+              <TouchableOpacity
+                style={styles.filterResetButton}
+                onPress={() => {
+                  setTempFilters({ species: 'all', confidence: 'all', dateRange: 'all' });
+                  setActiveFilter('all');
+                  setShowFilterModal(false);
+                }}
+              >
+                <Text style={styles.filterResetText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.filterApplyButton}
+                onPress={() => {
+                  // Apply filters logic here
+                  setShowFilterModal(false);
+                }}
+              >
+                <Text style={styles.filterApplyText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -398,7 +689,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 48,
+    paddingTop: 70,
     paddingBottom: 16,
     backgroundColor: '#F6F7F8',
   },
@@ -622,5 +913,215 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  // Liquid Glass Context Menu Styles
+  glassModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  glassMenuContainer: {
+    width: 250,
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 25,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  },
+  glassMenu: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    paddingVertical: 8,
+  },
+  glassMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+  },
+  glassIconWrapper: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  glassMenuText: {
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+  },
+  deleteMenuText: {
+    color: '#FF453A',
+  },
+  glassMenuDivider: {
+    height: 0.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 4,
+    marginHorizontal: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
+  actionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  deleteIconContainer: {
+    backgroundColor: '#FEE2E2',
+  },
+  actionButtonText: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  deleteText: {
+    color: '#EF4444',
+  },
+  actionDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 4,
+  },
+  cancelButton: {
+    marginTop: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+  },
+  cancelButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  filterModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  filterModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  filterOptionActive: {
+    backgroundColor: '#4cb2e6',
+    borderColor: '#4cb2e6',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  filterOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  filterActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  filterResetButton: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  filterResetText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  filterApplyButton: {
+    flex: 2,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#4cb2e6',
+    borderRadius: 12,
+  },
+  filterApplyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

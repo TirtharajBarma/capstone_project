@@ -223,6 +223,8 @@ export default function ResultsScreen() {
     
     if (source === 'analytics') {
       router.push('/(tabs)/analytics');
+    } else if (source === 'history') {
+      router.push('/(tabs)/history');
     } else if (source === 'home') {
       router.push('/(tabs)');
     } else if (source === 'scan') {
@@ -363,43 +365,41 @@ export default function ResultsScreen() {
             </View>
           </View>
         )}
-
-        {/* Bottom padding to prevent content from hiding behind fixed buttons */}
-        <View style={{ height: 200 }} />
       </ScrollView>
 
-      {/* Bottom Actions */}
+      {/* Bottom Actions - Fixed at bottom */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity 
-          style={[styles.primaryButton, isSaving && styles.buttonDisabled]} 
-          onPress={handleSaveResult}
-          activeOpacity={0.8}
-          disabled={isSaving || isSaved}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#FFF" size="small" />
-          ) : (
-            <>
-              <MaterialCommunityIcons 
-                name={isSaved ? "bookmark-check" : "bookmark-outline"} 
-                size={24} 
-                color="#FFF" 
-              />
-              <Text style={styles.primaryButtonText}>
-                {isSaved ? 'Saved' : 'Save Result'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.secondaryButton} 
-          onPress={handleRecognizeAnother}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="camera" size={24} color="#5D557D" />
-          <Text style={styles.secondaryButtonText}>Recognize Another</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity 
+            style={[styles.primaryButton, isSaving && styles.buttonDisabled]} 
+            onPress={handleSaveResult}
+            activeOpacity={0.8}
+            disabled={isSaving || isSaved}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <MaterialCommunityIcons 
+                  name={isSaved ? "bookmark-check" : "bookmark-outline"} 
+                  size={22} 
+                  color="#FFF" 
+                />
+                <Text style={styles.primaryButtonText}>
+                  {isSaved ? 'Saved' : 'Save'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.cameraButton} 
+            onPress={handleRecognizeAnother}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="camera" size={22} color="#5D557D" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -442,11 +442,12 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingBottom: 100, // Space for fixed buttons
   },
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 16,
+    paddingBottom: 110,
   },
   imageContainer: {
     width: '100%',
@@ -608,15 +609,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(244, 247, 255, 0.95)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    backgroundColor: '#F4F7FF',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
   primaryButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -624,10 +628,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 999,
     gap: 10,
-    shadowColor: 'rgba(93, 85, 125, 0.3)',
+    shadowColor: 'rgba(93, 85, 125, 0.2)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 4,
   },
   buttonDisabled: {
@@ -638,6 +642,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
     letterSpacing: 0.5,
+  },
+  cameraButton: {
+    width: 56,
+    height: 56,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(230, 224, 255, 0.8)',
+    borderRadius: 999,
   },
   secondaryButton: {
     flexDirection: 'row',

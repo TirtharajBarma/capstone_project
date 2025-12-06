@@ -15,6 +15,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "deploymentTarget": "15.0",
       "bundleIdentifier": "com.yourcompany.cattlebreedidentifier",
       "infoPlist": {
         "NSFaceIDUsageDescription": "We use Face ID to securely unlock your app and protect your data."

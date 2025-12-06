@@ -116,7 +116,7 @@ export const predictionAPI = {
   },
 
   delete: async (predictionId) => {
-    const response = await api.delete(API_ENDPOINTS.PREDICT_DELETE(predictionId));
+    const response = await api.delete(`/history/${predictionId}`);
     return response.data;
   },
 
