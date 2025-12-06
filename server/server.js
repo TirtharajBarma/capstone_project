@@ -6,7 +6,7 @@ import { predictionRoutes, breedRoutes, historyRoutes, userRoutes, webhookRoutes
 import { notFound, errorHandler } from './src/middleware/errorHandler.js';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ debug: false });
 
 // Validate environment variables
 const requiredEnvVars = [

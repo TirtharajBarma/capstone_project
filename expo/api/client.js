@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import API_ENDPOINTS from '../constants/endpoints';
 
 // Get API URL from environment
 const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5002/api';
@@ -55,27 +56,27 @@ api.interceptors.response.use(
 // User API
 export const userAPI = {
   getProfile: async (clerkId) => {
-    const response = await api.get(`/users/profile/${clerkId}`);
+    const response = await api.get(API_ENDPOINTS.USER_PROFILE(clerkId));
     return response.data;
   },
 
   syncUser: async (clerkUserData) => {
-    const response = await api.post('/users/sync', clerkUserData);
+    const response = await api.post(API_ENDPOINTS.USER_SYNC, clerkUserData);
     return response.data;
   },
 
   updatePreferences: async (clerkId, preferences) => {
-    const response = await api.put(`/users/preferences/${clerkId}`, { preferences });
+    const response = await api.put(API_ENDPOINTS.USER_PREFERENCES(clerkId), { preferences });
     return response.data;
   },
 
   getStatistics: async (clerkId) => {
-    const response = await api.get(`/users/stats/${clerkId}`);
+    const response = await api.get(API_ENDPOINTS.USER_STATS(clerkId));
     return response.data;
   },
 
   getAnalytics: async (clerkId, filter = 'all') => {
-    const response = await api.get(`/users/analytics/${clerkId}?filter=${filter}`);
+    const response = await api.get(`${API_ENDPOINTS.USER_ANALYTICS(clerkId)}?filter=${filter}`);
     return response.data;
   },
 };
@@ -87,7 +88,7 @@ export const predictionAPI = {
     console.log('🔌 [API] Base URL:', API_URL);
     
     try {
-      const response = await api.post('/predict', formData, {
+      const response = await api.post(API_ENDPOINTS.PREDICT, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -103,24 +104,24 @@ export const predictionAPI = {
   },
 
   getHistory: async (clerkId, limit = 10, skip = 0) => {
-    const response = await api.get('/history', {
+    const response = await api.get(API_ENDPOINTS.HISTORY, {
       params: { limit, page: 1 },
     });
     return response.data;
   },
 
   getById: async (predictionId) => {
-    const response = await api.get(`/predictions/${predictionId}`);
+    const response = await api.get(API_ENDPOINTS.PREDICT_BY_ID(predictionId));
     return response.data;
   },
 
   delete: async (predictionId) => {
-    const response = await api.delete(`/predictions/${predictionId}`);
+    const response = await api.delete(API_ENDPOINTS.PREDICT_DELETE(predictionId));
     return response.data;
   },
 
   save: async (predictionData, clerkId) => {
-    const response = await api.post('/predict/save', {
+    const response = await api.post(API_ENDPOINTS.PREDICT_SAVE, {
       predictionData,
       clerkId
     });
@@ -128,7 +129,7 @@ export const predictionAPI = {
   },
 
   toggleFavorite: async (predictionId, clerkId, isFavorite) => {
-    const response = await api.put(`/predict/${predictionId}/favorite`, {
+    const response = await api.put(API_ENDPOINTS.PREDICT_FAVORITE(predictionId), {
       clerkId,
       isFavorite
     });
@@ -139,7 +140,7 @@ export const predictionAPI = {
     console.log('🔌 [API] Uploading image to Cloudinary...');
     
     try {
-      const response = await api.post('/upload', formData, {
+      const response = await api.post(API_ENDPOINTS.UPLOAD_IMAGE, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -158,17 +159,17 @@ export const predictionAPI = {
 // Breed API
 export const breedAPI = {
   getAll: async () => {
-    const response = await api.get('/breeds');
+    const response = await api.get(API_ENDPOINTS.BREEDS);
     return response.data;
   },
 
   getByName: async (name) => {
-    const response = await api.get(`/breeds/name/${name}`);
+    const response = await api.get(API_ENDPOINTS.BREED_BY_NAME(name));
     return response.data;
   },
 
   search: async (query) => {
-    const response = await api.get('/breeds/search', {
+    const response = await api.get(API_ENDPOINTS.BREED_SEARCH, {
       params: { q: query },
     });
     return response.data;
@@ -178,14 +179,14 @@ export const breedAPI = {
 // History API
 export const historyAPI = {
   getHistory: async (clerkId, filters = {}) => {
-    const response = await api.get(`/history/${clerkId}`, {
+    const response = await api.get(API_ENDPOINTS.HISTORY_BY_USER(clerkId), {
       params: filters,
     });
     return response.data;
   },
 
   getStats: async (clerkId) => {
-    const response = await api.get('/history/stats');
+    const response = await api.get(API_ENDPOINTS.HISTORY_STATS);
     return response.data;
   },
 };

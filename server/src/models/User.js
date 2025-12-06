@@ -79,8 +79,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
-userSchema.index({ clerkId: 1 });
-userSchema.index({ email: 1 });
+// Note: clerkId and email already have indexes via unique: true
 userSchema.index({ role: 1 });
 
 // Static method to find or create user from Clerk data

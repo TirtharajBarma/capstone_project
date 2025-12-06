@@ -203,85 +203,28 @@ export const getUserAnalytics = async (req, res) => {
 
     // Get recent recognitions (last 8) with breed images and complete data
     const recentPredictions = predictions.slice(0, 8);
-    const recentRecognitions = await Promise.all(
-      recentPredictions.map(async (pred) => {
-        const imageToUse = pred.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed);
-
-        // Build enriched topPredictions array with complete breedInfo for each prediction
-        let enrichedTopPredictions = [];
-        
-        if (pred.modelMetadata?.topPredictions && Array.isArray(pred.modelMetadata.topPredictions)) {
-          // Enrich existing topPredictions with breed info
-          enrichedTopPredictions = await Promise.all(
-            pred.modelMetadata.topPredictions.map(async (topPred) => {
-              const breed = await Breed.findOne({ 
-                name: topPred.breed,
-                species: pred.species 
-              }).select('name species origin description traits characteristics location');
-              
-              const breedInfo = breed ? {
-                name: breed.name,
-                species: breed.species,
-                origin: breed.origin || null,
-                description: breed.description || null,
-                traits: Array.isArray(breed.traits) ? breed.traits : [],
-                characteristics: {
-                  size: breed.characteristics?.size || null,
-                  color: Array.isArray(breed.characteristics?.color) ? breed.characteristics.color : [],
-                  horns: breed.characteristics?.horns || null
-                },
-                location: breed.location || null
-              } : null;
-
-              return {
-                breed: topPred.breed,
-                confidence: topPred.confidence,
-                breedInfo: breedInfo
-              };
-            })
-          );
-        } else {
-          // Create topPredictions for old records
-          const breed = await Breed.findOne({ 
-            name: pred.predictedBreed,
-            species: pred.species 
-          }).select('name species origin description traits characteristics location');
-          
-          const breedInfo = breed ? {
-            name: breed.name,
-            species: breed.species,
-            origin: breed.origin || null,
-            description: breed.description || null,
-            traits: Array.isArray(breed.traits) ? breed.traits : [],
-            characteristics: {
-              size: breed.characteristics?.size || null,
-              color: Array.isArray(breed.characteristics?.color) ? breed.characteristics.color : [],
-              horns: breed.characteristics?.horns || null
-            },
-            location: breed.location || null
-          } : null;
-
-          enrichedTopPredictions = [{ 
-            breed: pred.predictedBreed, 
-            confidence: pred.confidence,
-            breedInfo: breedInfo
-          }];
-        }
-
-        return {
-          id: pred._id,
-          breed: pred.predictedBreed,
-          species: pred.species,
-          confidence: Math.round(pred.confidence * 100),
-          timestamp: pred.createdAt,
-          breedImage: imageToUse,
-          imageUrl: imageToUse,
-          isFavorite: pred.isFavorite || false,
-          topPredictions: enrichedTopPredictions,
-          inferenceTime: pred.modelMetadata?.inferenceTime
-        };
-      })
-    );
+    
+    // Enrich predictions with breed info using helper function (batch operation)
+    const { enrichPredictionsWithBreedInfo } = await import('../utils/breedEnrichment.js');
+    const enrichedPredictions = await enrichPredictionsWithBreedInfo(recentPredictions);
+    
+    // Format for response
+    const recentRecognitions = enrichedPredictions.map(pred => {
+      const imageToUse = pred.imageUrl || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(pred.predictedBreed);
+      
+      return {
+        id: pred._id,
+        breed: pred.predictedBreed,
+        species: pred.species,
+        confidence: Math.round(pred.confidence * 100),
+        timestamp: pred.createdAt,
+        breedImage: imageToUse,
+        imageUrl: imageToUse,
+        isFavorite: pred.isFavorite || false,
+        topPredictions: pred.modelMetadata?.topPredictions || [],
+        inferenceTime: pred.modelMetadata?.inferenceTime
+      };
+    });
 
     res.json({
       success: true,

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import API_ENDPOINTS from '../constants/endpoints.js';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -78,7 +79,7 @@ export const predictionAPI = {
       };
     }
 
-    const response = await api.post('/predict', formData, config);
+    const response = await api.post(API_ENDPOINTS.PREDICT, formData, config);
     return response.data;
   },
 
@@ -93,13 +94,13 @@ export const predictionAPI = {
       },
     };
 
-    const response = await api.post('/upload', formData, config);
+    const response = await api.post(API_ENDPOINTS.UPLOAD_IMAGE, formData, config);
     return response.data;
   },
 
   // Save a previously unpersisted prediction
   savePrediction: async (predictionData, clerkId) => {
-    const response = await api.post('/predict/save', {
+    const response = await api.post(API_ENDPOINTS.PREDICT_SAVE, {
       predictionData,
       clerkId
     });
@@ -108,13 +109,13 @@ export const predictionAPI = {
 
   // Get prediction by ID
   getById: async (predictionId) => {
-    const response = await api.get(`/predict/${predictionId}`);
+    const response = await api.get(API_ENDPOINTS.PREDICT_BY_ID(predictionId));
     return response.data;
   },
 
   // Check ML model health
   checkHealth: async () => {
-    const response = await api.get('/predict/health');
+    const response = await api.get(API_ENDPOINTS.PREDICT_HEALTH);
     return response.data;
   },
 };
@@ -123,26 +124,26 @@ export const predictionAPI = {
 export const breedsAPI = {
   // Get all breeds
   getAll: async (params = {}) => {
-    const response = await api.get('/breeds', { params });
+    const response = await api.get(API_ENDPOINTS.BREEDS, { params });
     return response.data;
   },
 
   // Get breed by ID
   getById: async (breedId) => {
-    const response = await api.get(`/breeds/${breedId}`);
+    const response = await api.get(API_ENDPOINTS.BREED_BY_ID(breedId));
     return response.data;
   },
 
   // Get breed by name
   getByName: async (name, species) => {
     const params = species ? { species } : {};
-    const response = await api.get(`/breeds/name/${name}`, { params });
+    const response = await api.get(API_ENDPOINTS.BREED_BY_NAME(name), { params });
     return response.data;
   },
 
   // Get breeds by species
   getBySpecies: async (species, params = {}) => {
-    const response = await api.get(`/breeds/species/${species}`, { params });
+    const response = await api.get(API_ENDPOINTS.BREED_BY_SPECIES(species), { params });
     return response.data;
   },
 
@@ -150,13 +151,13 @@ export const breedsAPI = {
   search: async (query, species = null) => {
     const params = { q: query };
     if (species) params.species = species;
-    const response = await api.get('/breeds/search', { params });
+    const response = await api.get(API_ENDPOINTS.BREED_SEARCH, { params });
     return response.data;
   },
 
   // Get breed statistics
   getStats: async () => {
-    const response = await api.get('/breeds/stats');
+    const response = await api.get(API_ENDPOINTS.BREED_STATS);
     return response.data;
   },
 };
@@ -165,13 +166,13 @@ export const breedsAPI = {
 export const historyAPI = {
   // Get prediction history
   getHistory: async (params = {}) => {
-    const response = await api.get('/history', { params });
+    const response = await api.get(API_ENDPOINTS.HISTORY, { params });
     return response.data;
   },
 
   // Get prediction statistics
   getStats: async (params = {}) => {
-    const response = await api.get('/history/stats', { params });
+    const response = await api.get(API_ENDPOINTS.HISTORY_STATS, { params });
     return response.data;
   },
 
@@ -179,13 +180,13 @@ export const historyAPI = {
   getRecent: async (limit = 10, species = null) => {
     const params = { limit };
     if (species) params.species = species;
-    const response = await api.get('/history/recent', { params });
+    const response = await api.get(API_ENDPOINTS.HISTORY_RECENT, { params });
     return response.data;
   },
 
   // Delete prediction
   delete: async (predictionId) => {
-    const response = await api.delete(`/history/${predictionId}`);
+    const response = await api.delete(API_ENDPOINTS.HISTORY_DELETE(predictionId));
     return response.data;
   },
 };
@@ -194,7 +195,7 @@ export const historyAPI = {
 export const utils = {
   // Check API health
   checkHealth: async () => {
-    const response = await api.get('/health');
+    const response = await api.get(API_ENDPOINTS.HEALTH);
     return response.data;
   },
 
@@ -271,7 +272,7 @@ export const userAPI = {
   // Sync user data from Clerk to MongoDB
   syncUser: async (clerkUserData) => {
     try {
-      const response = await api.post('/users/sync', clerkUserData);
+      const response = await api.post(API_ENDPOINTS.USER_SYNC, clerkUserData);
       return {
         success: true,
         data: response.data.data,
@@ -286,7 +287,7 @@ export const userAPI = {
   // Get user profile by Clerk ID
   getProfile: async (clerkId) => {
     try {
-      const response = await api.get(`/users/profile/${clerkId}`);
+      const response = await api.get(API_ENDPOINTS.USER_PROFILE(clerkId));
       return {
         success: true,
         data: response.data.data,
@@ -300,7 +301,7 @@ export const userAPI = {
   // Update user preferences
   updatePreferences: async (clerkId, preferences) => {
     try {
-      const response = await api.put(`/users/preferences/${clerkId}`, { preferences });
+      const response = await api.put(API_ENDPOINTS.USER_PREFERENCES(clerkId), { preferences });
       return {
         success: true,
         data: response.data.data,
@@ -315,7 +316,7 @@ export const userAPI = {
   // Get user statistics
   getStats: async (clerkId) => {
     try {
-      const response = await api.get(`/users/stats/${clerkId}`);
+      const response = await api.get(API_ENDPOINTS.USER_STATS(clerkId));
       return {
         success: true,
         data: response.data.data,
@@ -329,7 +330,7 @@ export const userAPI = {
   // Get user analytics for dashboard
   getAnalytics: async (clerkId) => {
     try {
-      const response = await api.get(`/users/analytics/${clerkId}`);
+      const response = await api.get(API_ENDPOINTS.USER_ANALYTICS(clerkId));
       return {
         success: true,
         data: response.data.data,
@@ -343,7 +344,7 @@ export const userAPI = {
   // Increment prediction count
   incrementPredictionCount: async (clerkId) => {
     try {
-      const response = await api.post(`/users/increment-prediction/${clerkId}`);
+      const response = await api.post(API_ENDPOINTS.USER_INCREMENT_PREDICTION(clerkId));
       return {
         success: true,
         data: response.data.data,
