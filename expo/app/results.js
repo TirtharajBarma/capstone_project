@@ -195,8 +195,9 @@ export default function ResultsScreen() {
         setIsFavorite(newFavoriteStatus);
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.warn('Error toggling favorite:', error);
       Alert.alert('Error', 'Failed to update favorite status');
+      setIsFavorite(!newFavoriteStatus); // Revert on error
     }
   };
 
@@ -236,7 +237,7 @@ export default function ResultsScreen() {
   };
 
   const topPrediction = prediction.topPredictions?.[0] || prediction;
-  const breedName = topPrediction.breed || prediction.breed || prediction.predictedBreed;
+  const breedName = (topPrediction.breed || prediction.breed || prediction.predictedBreed || '').replace(/_/g, ' ');
   const confidence = topPrediction.confidence || prediction.confidence || 0;
   const confidencePercentage = confidence > 1 ? Math.round(confidence) : Math.round(confidence * 100);
   const species = prediction.species || breedInfo?.species || 'Dairy Cattle';
@@ -505,6 +506,7 @@ const styles = StyleSheet.create({
     color: '#5D557D',
     marginBottom: 4,
     letterSpacing: -0.5,
+    flexShrink: 1,
   },
   breedSpecies: {
     fontSize: 16,

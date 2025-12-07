@@ -151,9 +151,9 @@ export default function ScanScreen() {
         Alert.alert('Error', result.message || 'Failed to analyze image');
       }
     } catch (error) {
-      console.error('💥 [ANALYZE] Error:', error);
-      console.error('💥 [ANALYZE] Error details:', error.message);
-      console.error('💥 [ANALYZE] Error stack:', error.stack);
+      console.warn('💥 [ANALYZE] Error:', error);
+      console.warn('💥 [ANALYZE] Error details:', error.message);
+      console.warn('💥 [ANALYZE] Error stack:', error.stack);
       Alert.alert(
         'Analysis Failed',
         'Could not analyze the image. Please try again or check your connection.'

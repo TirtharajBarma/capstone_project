@@ -72,7 +72,7 @@ export default function ProfileScreen() {
         });
       }
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.warn('Error loading profile stats:', error);
     } finally {
       setLoading(false);
     }

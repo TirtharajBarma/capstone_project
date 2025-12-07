@@ -113,8 +113,8 @@ export default function EditProfileScreen() {
 
         const result = await LocalAuthentication.authenticateAsync({
           promptMessage: `Authenticate to enable ${biometricType}`,
-          disableDeviceFallback: true,
-          fallbackLabel: '',
+          promptMessage: `Authenticate to enable ${biometricType}`,
+          disableDeviceFallback: false,
         });
         
         console.log('Auth result:', result);
@@ -243,9 +243,17 @@ export default function EditProfileScreen() {
 
       Alert.alert('Success', 'Profile updated successfully');
       router.back();
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to update profile');
+    } catch (err) {
+      console.warn('Update error:', err);
+      // Construct clearer error message
+      let errorMessage = 'Failed to update profile. Please try again.';
+      if (err.errors && err.errors.length > 0) {
+        errorMessage = err.errors[0].message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

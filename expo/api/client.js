@@ -42,10 +42,22 @@ api.interceptors.request.use(
   }
 );
 
+import { toastRef } from '../context/ToastContext';
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Show toast for error
+    const message = handleAPIError(error);
+    if (toastRef.current) {
+      toastRef.current.show({ 
+        message, 
+        type: 'error',
+        duration: 4000
+      });
+    }
+
     if (error.response?.status === 401) {
       console.warn('Unauthorized request - user may need to sign in');
     }
@@ -97,8 +109,8 @@ export const predictionAPI = {
       console.log('🔌 [API] Response received:', response.data);
       return response.data;
     } catch (error) {
-      console.error('🔌 [API] Error in predict:', error);
-      console.error('🔌 [API] Error response:', error.response?.data);
+      console.warn('🔌 [API] Error in predict:', error);
+      console.warn('🔌 [API] Error response:', error.response?.data);
       throw error;
     }
   },
@@ -149,8 +161,8 @@ export const predictionAPI = {
       console.log('🔌 [API] Upload response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('🔌 [API] Error uploading image:', error);
-      console.error('🔌 [API] Error response:', error.response?.data);
+      console.warn('🔌 [API] Error uploading image:', error);
+      console.warn('🔌 [API] Error response:', error.response?.data);
       throw error;
     }
   },

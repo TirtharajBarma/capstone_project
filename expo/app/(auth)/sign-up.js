@@ -41,8 +41,8 @@ export default function SignUpScreen() {
         // Use signIn or signUp for next steps such as MFA
       }
     } catch (err) {
-      console.error("OAuth error", err);
-      Alert.alert('Error', 'Failed to sign up with Google');
+      console.warn('Sign up error:', err);
+      Alert.alert('Error', err.errors?.[0]?.message || 'Failed to create account');
     }
   }, []);
 

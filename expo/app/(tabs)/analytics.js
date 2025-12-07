@@ -32,7 +32,7 @@ export default function Analytics() {
       const response = await userAPI.getAnalytics(clerkUser?.id, selectedFilter);
       setData(response.data);
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.warn('Error fetching analytics:', error);
     } finally {
       setLoading(false);
     }

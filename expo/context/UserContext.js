@@ -55,7 +55,7 @@ export const UserProvider = ({ children }) => {
         const response = await userAPI.syncUser(clerkUserData);
         setUserData(response.data);
       } catch (err) {
-        console.error('Error syncing user:', err);
+        console.warn('Error syncing user:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -72,7 +72,7 @@ export const UserProvider = ({ children }) => {
       const response = await userAPI.getProfile(userId);
       setUserData(response.data);
     } catch (err) {
-      console.error('Error refreshing user data:', err);
+      console.warn('Error refreshing user data:', err);
     }
   };
 

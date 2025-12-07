@@ -39,14 +39,8 @@ export default function BiometricAuth({ children }) {
       setBiometricsEnabled(bioEnabled === 'true');
       setAppPassword(storedPass);
 
-      // Skip biometric lock in Expo Go due to permission limitations
-      // Face ID will work in production builds
-      console.log('Security check: Biometrics enabled:', bioEnabled, 'App password:', !!storedPass);
-      setIsLocked(false);
-      setLoading(false);
+
       
-      /* 
-      // Uncomment this for production build:
       if (bioEnabled === 'true' || storedPass) {
         setIsLocked(true);
         if (bioEnabled === 'true') {
@@ -59,7 +53,6 @@ export default function BiometricAuth({ children }) {
         setIsLocked(false);
         setLoading(false);
       }
-      */
     } catch (error) {
       console.error('Security check error:', error);
       setIsLocked(false);
@@ -69,20 +62,21 @@ export default function BiometricAuth({ children }) {
 
   const authenticateWithBiometrics = async () => {
     try {
-      console.log('Starting biometric authentication...');
+      console.log('Authenticating with biometrics...');
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       
-      console.log('Hardware compatible:', compatible);
-      console.log('Biometrics enrolled:', enrolled);
+      console.log('Hardware compatible:', compatible, 'Enrolled:', enrolled);
       
       if (!compatible || !enrolled) {
         Alert.alert(
           'Biometrics Not Available',
           'Please enable Face ID in your device settings or use App Password.',
-          [{ text: 'OK', onPress: () => setShowPinInput(true) }]
+          [{ text: 'OK', onPress: () => {
+            setShowPinInput(true);
+            setLoading(false);
+          }}]
         );
-        setLoading(false);
         return;
       }
 
@@ -93,18 +87,39 @@ export default function BiometricAuth({ children }) {
         fallbackLabel: '',
       });
 
-      console.log('Biometric result:', result);
+      console.log('Auth result:', result);
 
       if (result.success) {
         setIsLocked(false);
         setLoading(false);
       } else {
-        // If biometric fails/cancelled, stop loading and show unlock screen
+        // If biometric fails/cancelled, show pin input as fallback
+        console.log('Biometric cancelled or failed, showing pin input');
+        console.log('appPassword exists:', !!appPassword);
+        if (appPassword) {
+          console.log('Setting showPinInput to true');
+          setShowPinInput(true);
+        } else {
+          // No password set, show alert and unlock
+          Alert.alert(
+            'Face ID Unavailable',
+            'Face ID is not available in Expo Go. Please set up an App Password in Settings → Edit Profile for security, or the app will remain unlocked.',
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                setIsLocked(false);
+              }
+            }]
+          );
+        }
         setLoading(false);
       }
     } catch (error) {
-      console.error('Biometric auth error:', error);
+      console.warn('Biometric auth error:', error);
       Alert.alert('Error', 'Biometric authentication failed. Please try again.');
+      if (appPassword) {
+        setShowPinInput(true);
+      }
       setLoading(false);
     }
   };
@@ -174,10 +189,7 @@ export default function BiometricAuth({ children }) {
             {biometricsEnabled && (
               <TouchableOpacity 
                 style={styles.button} 
-                onPress={() => {
-                  console.log('Button pressed');
-                  authenticateWithBiometrics();
-                }}
+                onPress={authenticateWithBiometrics}
               >
                 <MaterialCommunityIcons name="face-recognition" size={24} color="#FFFFFF" style={{ marginRight: 10 }} />
                 <Text style={styles.buttonText}>Unlock with Face ID</Text>

@@ -38,7 +38,7 @@ export default function HomeScreen() {
         setRecentScans([]);
       }
     } catch (error) {
-      console.error('Error loading recent scans:', error);
+      console.warn('Error loading recent scans:', error);
       setRecentScans([]);
     } finally {
       setLoading(false);

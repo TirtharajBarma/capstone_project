@@ -39,7 +39,7 @@ export default function SignInScreen() {
         // Use signIn or signUp for next steps such as MFA
       }
     } catch (err) {
-      console.error("OAuth error", err);
+      console.warn("OAuth error", err);
       Alert.alert('Error', 'Failed to sign in with Google');
     }
   }, []);

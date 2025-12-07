@@ -64,7 +64,7 @@ export default function HistoryScreen() {
         setPredictions([]);
       }
     } catch (error) {
-      console.error('Error loading history:', error);
+      console.warn('Error loading history:', error);
       setPredictions([]);
     } finally {
       setLoading(false);
@@ -454,10 +454,15 @@ export default function HistoryScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#4cb2e6"
+            title="Pull to refresh"
+            titleColor="#9CA3AF"
             colors={['#4cb2e6']}
           />
         }
       >
+        {/* Pull to Refresh Hint */}
+        <Text style={styles.pullToRefreshHint}>↓ Pull down to refresh</Text>
+
         {filteredPredictions.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="history" size={64} color="#D1D5DB" />
@@ -682,7 +687,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F7F8',
+    backgroundColor: '#FAF8F6',
   },
   header: {
     flexDirection: 'row',
@@ -691,7 +696,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 70,
     paddingBottom: 16,
-    backgroundColor: '#F6F7F8',
+    backgroundColor: '#FAF8F6',
   },
   headerButton: {
     width: 40,
@@ -775,6 +780,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 120,
+  },
+  pullToRefreshHint: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 12,
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
   section: {
     marginBottom: 24,
