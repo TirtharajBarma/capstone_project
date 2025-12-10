@@ -4,11 +4,13 @@ React Native mobile app built with Expo for cattle breed identification. This ap
 
 ## 🚀 Features
 
-- **Clerk Authentication**: Secure sign-in/sign-up with Clerk
-- **Profile Screen**: View user statistics and manage account settings
+- **Clerk Authentication**: Secure sign-in/sign-up with Clerk (same as web app)
+- **Profile Screen**: View user statistics (scans, breeds identified, favorites)
 - **Backend Integration**: Connects to the same Node.js API as the web app
+- **Secure Token Storage**: Uses Expo SecureStore for authentication tokens
 - **Dark Mode Support**: Automatic light/dark theme based on device settings
-- **Cross-Platform**: Works on both iOS and Android
+- **Cross-Platform**: Single codebase for both iOS and Android
+- **Native Performance**: Built with React Native for smooth native experience
 
 ## 📋 Prerequisites
 
@@ -197,12 +199,14 @@ All API calls are handled through the centralized API client in `/api/client.js`
 
 ## 🚧 Coming Soon
 
-- Camera/Gallery integration for breed prediction
-- Prediction history screen
-- Breed details screen
-- Dashboard with analytics
-- Settings screen
-- Push notifications
+- **Camera/Gallery Integration**: Take photos or select from gallery for breed prediction
+- **Prediction History Screen**: View all past predictions with filtering
+- **Breed Details Screen**: Detailed information about each breed
+- **Dashboard with Analytics**: Visual charts and statistics
+- **Settings Screen**: App preferences and account settings
+- **Push Notifications**: Get notified about prediction results
+- **Offline Mode**: Cache breed data for offline viewing
+- **Share Results**: Share predictions on social media
 
 ## 🐛 Troubleshooting
 
@@ -224,7 +228,13 @@ npx expo start --clear
 
 ### Dark mode not working
 - Device system settings control the theme
-- Change your device's appearance settings to test
+- iOS: Settings → Display & Brightness → Dark
+- Android: Settings → Display → Dark theme
+
+### Expo Go app crashes
+1. Clear Expo cache: `npx expo start --clear`
+2. Restart Expo Go app
+3. Check for console errors in terminal
 
 ## 📦 Dependencies
 
@@ -252,11 +262,13 @@ npx expo start --clear
 
 ## 📝 Notes
 
-- This app does NOT use TypeScript (plain JavaScript as per requirements)
-- Backend and FastAPI services remain unchanged
-- Uses the same Clerk configuration as web app
-- All user data is stored in the existing MongoDB database
-- Supports both light and dark modes automatically
+- **Language**: Plain JavaScript (no TypeScript)
+- **Backend**: Uses the same Node.js backend as web app (no changes needed)
+- **ML Service**: Connects to the same FastAPI service (no changes needed)
+- **Authentication**: Shares Clerk configuration with web app
+- **Database**: All user data stored in the same MongoDB database
+- **Theme**: Automatic light/dark mode based on device settings
+- **Platform**: Works on both iOS and Android with single codebase
 
 ## 🤝 Contributing
 

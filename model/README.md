@@ -1,14 +1,18 @@
 # ML Model Service
 
-FastAPI service for cattle and buffalo breed recognition using PyTorch and ResNet50.
+FastAPI service for cattle and buffalo breed recognition using PyTorch and EfficientNet V2-S.
 
 ## Features
 
-- **41 Breed Recognition**: Identifies cattle and buffalo breeds
-- **High Accuracy**: Deep learning model with confidence scores
-- **Fast Inference**: Optimized PyTorch model (< 1 second)
-- **RESTful API**: FastAPI with automatic documentation
-- **Health Monitoring**: Health check endpoints
+- **41 Breed Recognition**: Identifies 36 cattle breeds + 5 buffalo breeds
+- **EfficientNet V2-S Architecture**: State-of-the-art deep learning model
+- **Confidence Thresholding**: Rejects low-confidence predictions (< 45%)
+- **Species Classification**: Automatically categorizes as cow/buffalo/unknown
+- **Fast Inference**: Optimized PyTorch model (< 1 second on CPU)
+- **Test Time Augmentation (TTA)**: Optional image augmentation for better accuracy
+- **Temperature Scaling**: Calibrated confidence scores
+- **RESTful API**: FastAPI with automatic Swagger documentation
+- **Health Monitoring**: Detailed health check with model info
 
 ## Supported Breeds
 
@@ -115,11 +119,14 @@ Open your browser and navigate to:
 
 ## Model Files
 
-- `best_model.pth` - Trained PyTorch model weights
-- `final_model.pth` - Fallback model file
-- `classes.json` - Class names mapping
-- `service.py` - Model inference service
-- `app.py` - FastAPI application
+- `best_cattle_model_pro.pth` - Primary trained model (EfficientNet V2-S)
+- `best_model.pth` - Fallback model file
+- `final_model.pth` - Secondary fallback
+- `classes.json` - 41 breed class names mapping
+- `cattle_categories.json` - Cow/buffalo species classification
+- `service.py` - Model inference service with TTA and thresholding
+- `app.py` - FastAPI application with CORS and health checks
+- `requirements.txt` - Python dependencies
 
 ## Configuration
 
@@ -127,14 +134,48 @@ Open your browser and navigate to:
 
 Create a `.env` file (optional):
 ```env
-MODEL_PATH=best_model.pth
+# Model Configuration
+MODEL_PATH=best_cattle_model_pro.pth
 CLASSES_PATH=classes.json
-MODEL_DEVICE=cpu
+MODEL_DEVICE=cpu                    # or 'cuda' for GPU
+
+# Server Configuration
 HOST=0.0.0.0
 PORT=8000
+
+# Model Inference Settings
+MODEL_INPUT_SIZE=224                # Image input size (224 or 384)
+MODEL_TEMPERATURE=1.0               # Temperature scaling (1.0 = no scaling)
+MODEL_REJECT_THRESHOLD=0.45         # Minimum confidence to accept prediction
+MODEL_MARGIN_THRESHOLD=0.05         # Minimum gap between top 2 predictions
+MODEL_TTA=1                         # Test Time Augmentation (1 = off, 2 = on)
+
+# CORS Configuration
 FRONTEND_URL=http://localhost:5173
 BACKEND_URL=http://localhost:5002
 ```
+
+### Configuration Explained
+
+**MODEL_REJECT_THRESHOLD** (default: 0.45)
+- Predictions below this confidence return "unknown"
+- Higher = more conservative (fewer false positives)
+- Lower = more permissive (more predictions accepted)
+
+**MODEL_MARGIN_THRESHOLD** (default: 0.05)
+- Minimum confidence gap between 1st and 2nd predictions
+- Catches cases where model is confused between similar breeds
+- Example: If top is 46% and second is 44%, margin is only 2% → returns "unknown"
+
+**MODEL_TTA** (default: 1)
+- 1 = No augmentation (faster)
+- 2 = Mirror augmentation (slightly better accuracy, 2x slower)
+
+**MODEL_TEMPERATURE** (default: 1.0)
+- Adjusts confidence calibration
+- > 1.0 = softer probabilities (less confident)
+- < 1.0 = sharper probabilities (more confident)
+- 1.0 = no adjustment
 
 ### Supported Image Formats
 - JPEG (.jpg, .jpeg)
@@ -143,9 +184,30 @@ BACKEND_URL=http://localhost:5002
 
 ## Performance
 
-- **Inference Time**: < 1 second on CPU
-- **Memory Usage**: ~500MB
+- **Inference Time**: 
+  - CPU: ~200-500ms per image
+  - GPU: ~50-100ms per image
+  - With TTA: 2x slower
+- **Memory Usage**: 
+  - CPU: ~500MB
+  - GPU: ~1.5GB VRAM
+- **Model Size**: ~20MB (.pth file)
+- **Input Size**: 224x224 RGB images
 - **Concurrent Requests**: Supported via uvicorn workers
+
+## Model Architecture
+
+The service uses **EfficientNet V2-S** with the following structure:
+- Backbone: EfficientNet V2-S (pretrained, then fine-tuned)
+- Classifier: Dropout(0.2) → Linear(feature_dim → 41 classes)
+- Input: 224x224 RGB images
+- Preprocessing: Resize → CenterCrop → Normalize (ImageNet stats)
+- Output: 41-class softmax probabilities
+
+### Why EfficientNet V2-S?
+- Better accuracy than ResNet50 with similar speed
+- Optimized for both accuracy and inference speed
+- Smaller model size (~20MB vs ~100MB for ResNet50)
 
 ## Troubleshooting
 
