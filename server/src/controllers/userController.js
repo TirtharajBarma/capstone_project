@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import Prediction from '../models/Prediction.js';
 import Breed from '../models/Breed.js';
+// Import dependencies needed for analytics here instead of dynamic import
+import { enrichPredictionsWithBreedInfo } from '../utils/breedEnrichment.js';
 
 // Get or create user profile
 export const getUserProfile = async (req, res) => {
@@ -41,6 +43,14 @@ export const syncUserFromClerk = async (req, res) => {
   try {
     const clerkUserData = req.body;
     
+    // Security check: Ensure the authenticated user is syncing their own data
+    if (!req.auth || req.auth.userId !== clerkUserData.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You can only sync your own data'
+      });
+    }
+
     if (!clerkUserData.id) {
       return res.status(400).json({
         success: false,
@@ -149,9 +159,6 @@ export const getUserAnalytics = async (req, res) => {
       });
     }
 
-    // Import Prediction and Breed models
-    const { Prediction, Breed } = await import('../models/index.js');
-
     // Build query based on filter
     const query = { userId: user._id };
     if (filter === 'cow') {
@@ -205,7 +212,6 @@ export const getUserAnalytics = async (req, res) => {
     const recentPredictions = predictions.slice(0, 8);
     
     // Enrich predictions with breed info using helper function (batch operation)
-    const { enrichPredictionsWithBreedInfo } = await import('../utils/breedEnrichment.js');
     const enrichedPredictions = await enrichPredictionsWithBreedInfo(recentPredictions);
     
     // Format for response

@@ -13,9 +13,9 @@ import { requireAuth, requireOwner } from '../middleware/auth.js';
 const router = express.Router();
 
 // Sync user data from Clerk (create or update)
-// This is called by frontend after sign-in - uses optional auth since user may just have signed in
-// The Clerk user data itself validates the request
-router.post('/sync', syncUserFromClerk);
+// This is called by frontend after sign-in.
+// Protected to ensure only authenticated users can sync their own data.
+router.post('/sync', requireAuth, syncUserFromClerk);
 
 // Get user profile by Clerk ID
 router.get('/profile/:clerkId', requireAuth, requireOwner, getUserProfile);
