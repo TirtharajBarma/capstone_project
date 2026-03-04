@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    paddingBottom: 120,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   },
   confirmationCard: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 80,
+    bottom: Platform.OS === 'ios' ? 140 : 120,
     left: 16,
     right: 16,
     backgroundColor: '#FFF',

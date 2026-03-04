@@ -17,7 +17,7 @@ import {
   Animated,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUserContext } from '../../context/UserContext';
 import { predictionAPI } from '../../api/client';
@@ -42,9 +42,11 @@ export default function HistoryScreen() {
     dateRange: 'all',
   });
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [clerkUser?.id]) // Re-run when user changes, but useFocusEffect handles focus changes
+  );
 
   useEffect(() => {
     filterPredictions();
@@ -129,38 +131,7 @@ export default function HistoryScreen() {
     setFilteredPredictions(filtered);
   };
 
-  const groupPredictionsByDate = () => {
-    const groups = {
-      today: [],
-      yesterday: [],
-      lastWeek: [],
-      older: [],
-    };
 
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const lastWeek = new Date(today);
-    lastWeek.setDate(lastWeek.getDate() - 7);
-
-    filteredPredictions.forEach(prediction => {
-      const predDate = new Date(prediction.createdAt);
-      const predDateOnly = new Date(predDate.getFullYear(), predDate.getMonth(), predDate.getDate());
-
-      if (predDateOnly.getTime() === today.getTime()) {
-        groups.today.push(prediction);
-      } else if (predDateOnly.getTime() === yesterday.getTime()) {
-        groups.yesterday.push(prediction);
-      } else if (predDate >= lastWeek) {
-        groups.lastWeek.push(prediction);
-      } else {
-        groups.older.push(prediction);
-      }
-    });
-
-    return groups;
-  };
 
   const handleShare = async (prediction) => {
     try {
@@ -274,12 +245,22 @@ export default function HistoryScreen() {
   const renderPredictionItem = (prediction) => {
     const confidenceColors = getConfidenceColor(prediction.confidence);
     const speciesColors = getSpeciesBadgeColor(prediction.species);
-    const shouldBlur = prediction.confidence < 0.3; // Blur only if below 30%
+
+
+    const getCardBackgroundColor = (confidence) => {
+      // > 80% (0.8): #EDF3EB
+      // 30-79% (0.3 - 0.79): #ECF0F0
+      // < 30% (0.3): #F7EBE7
+      if (confidence > 0.8) return '#EDF3EB';
+      if (confidence >= 0.3) return '#ECF0F0';
+      return '#F7EBE7';
+    };
+
 
     return (
       <TouchableOpacity
         key={prediction._id}
-        style={styles.predictionCard}
+        style={[styles.predictionCard, { backgroundColor: getCardBackgroundColor(prediction.confidence) }]}
         activeOpacity={0.7}
         onPress={() => {
           const topPredictions = prediction.modelMetadata?.topPredictions || [{
@@ -305,7 +286,7 @@ export default function HistoryScreen() {
           });
         }}
       >
-        <View style={[styles.imageContainer, shouldBlur && styles.blurredImage]}>
+        <View style={styles.imageContainer}>
           <Image
             source={{ uri: prediction.imageUrl || 'https://via.placeholder.com/72' }}
             style={styles.predictionImage}
@@ -316,32 +297,13 @@ export default function HistoryScreen() {
           <Text style={styles.breedName} numberOfLines={1}>
             {prediction.predictedBreed}
           </Text>
-          <View style={styles.metaRow}>
-            <View style={[styles.speciesBadge, { backgroundColor: speciesColors.bg }]}>
-              <Text style={[styles.speciesText, { color: speciesColors.text }]}>
-                {prediction.species.toUpperCase()}
-              </Text>
-            </View>
-            <Text style={styles.timeText}>{formatTime(prediction.createdAt)}</Text>
-          </View>
+          <Text style={styles.subtitleText}>
+            {Math.round(prediction.confidence * 100)}% Match - {formatTime(prediction.createdAt)}
+          </Text>
         </View>
 
         <View style={styles.rightSection}>
-          <View style={[styles.confidenceBadge, { backgroundColor: confidenceColors.bg }]}>
-            <Text style={[styles.confidenceText, { color: confidenceColors.text }]}>
-              {Math.round(prediction.confidence * 100)}%
-            </Text>
-          </View>
-          
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              showActionSheet(prediction, e);
-            }}
-          >
-            <MaterialCommunityIcons name="dots-vertical" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
         </View>
       </TouchableOpacity>
     );
@@ -353,7 +315,6 @@ export default function HistoryScreen() {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <View style={[styles.sectionDot, { backgroundColor: dotColor }]} />
           <Text style={styles.sectionTitle}>{title}</Text>
         </View>
         <View style={styles.sectionContent}>
@@ -366,11 +327,6 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerButton} />
-          <Text style={styles.headerTitle}>History</Text>
-          <View style={styles.headerButton} />
-        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4cb2e6" />
         </View>
@@ -378,7 +334,59 @@ export default function HistoryScreen() {
     );
   }
 
-  const groups = groupPredictionsByDate();
+  const groupPredictionsByDate = () => {
+    const sections = [];
+    const todayData = [];
+    const yesterdayData = [];
+    const lastWeekData = [];
+    const monthGroups = new Map();
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const lastWeekThreshold = new Date(today);
+    lastWeekThreshold.setDate(lastWeekThreshold.getDate() - 7);
+
+    filteredPredictions.forEach(prediction => {
+      const predDate = new Date(prediction.createdAt);
+      const predDateOnly = new Date(predDate.getFullYear(), predDate.getMonth(), predDate.getDate());
+
+      if (predDateOnly.getTime() === today.getTime()) {
+        todayData.push(prediction);
+      } else if (predDateOnly.getTime() === yesterday.getTime()) {
+        yesterdayData.push(prediction);
+      } else if (predDateOnly >= lastWeekThreshold) {
+        lastWeekData.push(prediction);
+      } else {
+        const monthYear = predDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        if (!monthGroups.has(monthYear)) {
+          monthGroups.set(monthYear, []);
+        }
+        monthGroups.get(monthYear).push(prediction);
+      }
+    });
+
+    if (todayData.length > 0) {
+      sections.push({ title: 'Today', data: todayData, color: '#4cb2e6' });
+    }
+    if (yesterdayData.length > 0) {
+      sections.push({ title: 'Yesterday', data: yesterdayData, color: '#9CA3AF' });
+    }
+    if (lastWeekData.length > 0) {
+      sections.push({ title: 'Last Week', data: lastWeekData, color: '#9CA3AF' });
+    }
+    
+    monthGroups.forEach((data, title) => {
+      sections.push({ title, data, color: '#9CA3AF' });
+    });
+
+    return sections;
+  };
+
+  const sections = groupPredictionsByDate();
 
   return (
     <View style={styles.container}>
@@ -473,10 +481,11 @@ export default function HistoryScreen() {
           </View>
         ) : (
           <>
-            {renderSection('TODAY', groups.today, '#4cb2e6')}
-            {renderSection('YESTERDAY', groups.yesterday, '#9CA3AF')}
-            {renderSection('LAST WEEK', groups.lastWeek, '#9CA3AF')}
-            {renderSection('OLDER', groups.older, '#9CA3AF')}
+            {sections.map((section, index) => (
+              <View key={index}>
+                {renderSection(section.title, section.data, section.color)}
+              </View>
+            ))}
           </>
         )}
       </ScrollView>
@@ -793,22 +802,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 12,
-    marginLeft: 4,
-  },
-  sectionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 8,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#6B7280',
-    letterSpacing: 1.2,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#374151',
   },
   sectionContent: {
     gap: 12,
@@ -845,52 +844,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   breedName: {
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#0e161b',
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  speciesBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  speciesText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  timeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#9CA3AF',
+  subtitleText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '400',
   },
   rightSection: {
-    alignItems: 'flex-end',
+    paddingLeft: 8,
     justifyContent: 'center',
-    gap: 8,
-    marginLeft: 8,
-  },
-  confidenceBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  confidenceText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  moreButton: {
-    padding: 4,
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 96,
+    bottom: 130,
     right: 24,
     width: 56,
     height: 56,

@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { predictionAPI } from '../api/client';
@@ -209,6 +210,40 @@ export default function ResultsScreen() {
     router.replace('/history');
   };
 
+  const handleDelete = () => {
+    if (!predictionId) return;
+
+    Alert.alert(
+      'Delete Result',
+      'Are you sure you want to delete this result? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsSaving(true);
+              const result = await predictionAPI.delete(predictionId);
+              if (result.success) {
+                // Navigate back to the previous screen (history/home etc)
+                router.back();
+              }
+            } catch (error) {
+              console.error('Error deleting prediction:', error);
+              Alert.alert('Error', 'Failed to delete result');
+            } finally {
+              setIsSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (!prediction) {
     return (
       <View style={styles.loadingContainer}>
@@ -326,6 +361,43 @@ export default function ResultsScreen() {
           </View>
         )}
 
+        {/* Geographic Origin Map */}
+        {breedInfo?.location?.lat && breedInfo?.location?.lng && (
+          <View style={styles.mapCard}>
+            <View style={styles.mapHeader}>
+              <Text style={styles.infoTitle}>Native Region</Text>
+              <Text style={styles.mapSubtitle}>
+                 {breedInfo.location.region}
+                 {breedInfo.location.country && `, ${breedInfo.location.country}`}
+              </Text>
+            </View>
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                initialRegion={{
+                  latitude: breedInfo.location.lat,
+                  longitude: breedInfo.location.lng,
+                  latitudeDelta: 10.0,
+                  longitudeDelta: 10.0,
+                }}
+                scrollEnabled={true}
+                zoomEnabled={true}
+                rotateEnabled={true}
+                pitchEnabled={true}
+              >
+                <Marker
+                  coordinate={{
+                    latitude: breedInfo.location.lat,
+                    longitude: breedInfo.location.lng,
+                  }}
+                  title={breedName}
+                  description={breedInfo.location.region} 
+                />
+              </MapView>
+            </View>
+          </View>
+        )}
+
         {/* Physical Traits */}
         {breedInfo?.characteristics && (
           <View style={styles.infoCard}>
@@ -393,13 +465,26 @@ export default function ResultsScreen() {
             )}
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.cameraButton} 
-            onPress={handleRecognizeAnother}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons name="camera" size={22} color="#5D557D" />
-          </TouchableOpacity>
+
+          
+          {(params.source === 'history' || params.source === 'analytics' || params.source === 'home') ? (
+            <TouchableOpacity 
+              style={[styles.cameraButton, { backgroundColor: '#FEE2E2' }]} 
+              onPress={handleDelete}
+              activeOpacity={0.8}
+              disabled={isSaving}
+            >
+              <MaterialCommunityIcons name="trash-can-outline" size={22} color="#EF4444" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={styles.cameraButton} 
+              onPress={handleRecognizeAnother}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="camera" size={22} color="#5D557D" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -511,6 +596,35 @@ const styles = StyleSheet.create({
   breedSpecies: {
     fontSize: 16,
     color: 'rgba(93, 85, 125, 0.7)',
+  },
+  mapCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  mapHeader: {
+    marginBottom: 12,
+  },
+  mapSubtitle: {
+    fontSize: 14,
+    color: '#49454F',
+    marginTop: -4,
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#E6E0FF', // Fallback color
+  },
+  map: {
+    width: '100%',
+    height: '100%',
   },
   confidenceCard: {
     backgroundColor: '#FFF',

@@ -1,10 +1,12 @@
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import { UserProvider } from '../context/UserContext';
 import { ToastProvider } from '../context/ToastContext';
 import BiometricAuth from '../components/BiometricAuth';
-import { LogBox } from 'react-native';
+import { LogBox, useColorScheme } from 'react-native';
+import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Ignore specific logs including the ugly "Uncaught promise" which we are now handling
 LogBox.ignoreLogs([
@@ -20,16 +22,20 @@ if (!publishableKey) {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ClerkLoaded>
-        <UserProvider>
-          <ToastProvider>
-            <BiometricAuth>
-              <Slot />
-            </BiometricAuth>
-          </ToastProvider>
-        </UserProvider>
-      </ClerkLoaded>
-    </ClerkProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={DefaultTheme}>
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          <ClerkLoaded>
+            <UserProvider>
+              <ToastProvider>
+                <BiometricAuth>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </BiometricAuth>
+              </ToastProvider>
+            </UserProvider>
+          </ClerkLoaded>
+        </ClerkProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

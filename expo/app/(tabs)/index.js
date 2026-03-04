@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUserContext } from '../../context/UserContext';
 import { predictionAPI } from '../../api/client';
@@ -23,9 +23,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadRecentScans();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadRecentScans();
+    }, [clerkUser?.id])
+  );
 
   const loadRecentScans = async () => {
     if (!clerkUser?.id) return;
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAF8F6',
   },
   contentContainer: {
-    paddingBottom: -100,
+    paddingBottom: 120,
   },
   header: {
     alignItems: 'center',

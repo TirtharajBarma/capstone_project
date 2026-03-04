@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   contentContainer: {
-    paddingBottom: 5,
+    paddingBottom: 120,
   },
   profileSection: {
     alignItems: 'center',

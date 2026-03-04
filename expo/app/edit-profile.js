@@ -94,6 +94,14 @@ export default function EditProfileScreen() {
   const handleBiometricToggle = async (value) => {
     console.log('Toggle changed to:', value);
     if (value) {
+      if (!appPasswordExists) {
+        Alert.alert(
+          'App Password Required',
+          'Please set an app password before enabling biometric authentication.'
+        );
+        return;
+      }
+
       try {
         const compatible = await LocalAuthentication.hasHardwareAsync();
         const enrolled = await LocalAuthentication.isEnrolledAsync();
@@ -481,6 +489,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#FAF8F6',
+    marginTop: Platform.OS === 'android' ? 30 : 0,
   },
   backButton: {
     padding: 4,
