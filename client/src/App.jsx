@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { SignedOut, useAuth } from '@clerk/clerk-react';
 import Navigation from './components/layout/Navigation';
-import HomePage from './pages/HomePage';
+import Dashboard from './components/layout/Dashboard';
 import UserDashboard from './pages/UserDashboard';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import HistoryDashboard from './pages/HistoryDashboard';
@@ -129,7 +129,7 @@ function App() {
           <Route 
             path="/" 
             element={
-              <HomePage
+              <Dashboard
                 onImageUpload={handleImageUpload}
                 isLoading={isLoading}
                 error={error}
