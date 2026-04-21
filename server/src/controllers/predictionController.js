@@ -62,6 +62,8 @@ export const predictBreed = asyncHandler(async (req, res) => {
         'https://openrouter.ai/api/v1/chat/completions',
         {
           model: aiModel,
+          temperature: 0,
+          top_p: 1,
           max_tokens: 2000,
           // response_format: { type: "json_object" }, // Unsupported by many vision models
           messages: [

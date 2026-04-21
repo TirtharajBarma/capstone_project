@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torchvision import transforms, models
-from PIL import Image
+from PIL import Image, ImageOps
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -137,7 +137,8 @@ class ModelService:
         )
 
     def predict(self, image_path):
-        img = Image.open(image_path).convert("RGB")
+        img = Image.open(image_path)
+        img = ImageOps.exif_transpose(img).convert("RGB")
         img_tensor = self.transform(img).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -165,7 +166,8 @@ class ModelService:
         }
 
     def predict_bytes(self, image_bytes):
-        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        img = Image.open(io.BytesIO(image_bytes))
+        img = ImageOps.exif_transpose(img).convert("RGB")
         img_tensor = self.transform(img).unsqueeze(0).to(self.device)
 
         with torch.no_grad():

@@ -57,14 +57,17 @@ export default function ResultsScreen() {
           setIsFavorite(predictionData.isFavorite);
         }
         
-        // The backend now returns breedInfo inside topPredictions[0]
-        // No need to fetch separately!
-        if (predictionData.topPredictions && predictionData.topPredictions.length > 0) {
+        // Use primary backend fields as source of truth.
+        // Keep topPredictions[0] only as a fallback for older payloads.
+        if (predictionData.breedInfo) {
+          console.log('✅ [RESULTS] Using primary breedInfo from prediction:', predictionData.breedInfo);
+          setBreedInfo(predictionData.breedInfo);
+        } else if (predictionData.topPredictions && predictionData.topPredictions.length > 0) {
           const topPrediction = predictionData.topPredictions[0];
-          console.log('📊 [RESULTS] Top prediction:', topPrediction);
-          
+          console.log('📊 [RESULTS] Fallback top prediction:', topPrediction);
+
           if (topPrediction.breedInfo) {
-            console.log('✅ [RESULTS] Using breedInfo from prediction:', topPrediction.breedInfo);
+            console.log('✅ [RESULTS] Using fallback breedInfo from top prediction:', topPrediction.breedInfo);
             setBreedInfo(topPrediction.breedInfo);
           }
         }
@@ -82,9 +85,8 @@ export default function ResultsScreen() {
 
   const handleShare = async () => {
     try {
-      const topPrediction = prediction.topPredictions?.[0] || prediction;
-      const breedName = topPrediction.breed || prediction.breed;
-      const confidenceVal = topPrediction.confidence || prediction.confidence || 0;
+      const breedName = prediction.breed || prediction.predictedBreed || prediction.topPredictions?.[0]?.breed || '';
+      const confidenceVal = prediction.confidence ?? prediction.topPredictions?.[0]?.confidence ?? 0;
       const confidencePct = confidenceVal > 1 ? Math.round(confidenceVal) : Math.round(confidenceVal * 100);
       
       await Share.share({
@@ -109,8 +111,6 @@ export default function ResultsScreen() {
 
     setIsSaving(true);
     try {
-      const topPrediction = prediction.topPredictions?.[0] || prediction;
-      
       // Upload image to server if it's a local file
       let uploadedImageUrl = imageUrl;
       
@@ -144,8 +144,8 @@ export default function ResultsScreen() {
       }
       
       const predictionData = {
-        predictedBreed: topPrediction.breed || prediction.breed,
-        confidence: topPrediction.confidence || prediction.confidence,
+        predictedBreed: prediction.breed || prediction.predictedBreed || prediction.topPredictions?.[0]?.breed,
+        confidence: prediction.confidence ?? prediction.topPredictions?.[0]?.confidence,
         species: prediction.species || 'cattle',
         imageUrl: uploadedImageUrl,
         imageMetadata: {
@@ -252,7 +252,7 @@ export default function ResultsScreen() {
     );
   }
 
-  // Get data from topPredictions[0] (primary prediction)
+  // Use primary prediction fields first, then fallback for older payloads.
   const handleBack = () => {
     // Navigate to specific page based on source parameter
     const source = params.source;
@@ -271,9 +271,8 @@ export default function ResultsScreen() {
     }
   };
 
-  const topPrediction = prediction.topPredictions?.[0] || prediction;
-  const breedName = (topPrediction.breed || prediction.breed || prediction.predictedBreed || '').replace(/_/g, ' ');
-  const confidence = topPrediction.confidence || prediction.confidence || 0;
+  const breedName = (prediction.breed || prediction.predictedBreed || prediction.topPredictions?.[0]?.breed || '').replace(/_/g, ' ');
+  const confidence = prediction.confidence ?? prediction.topPredictions?.[0]?.confidence ?? 0;
   const confidencePercentage = confidence > 1 ? Math.round(confidence) : Math.round(confidence * 100);
   const species = prediction.species || breedInfo?.species || 'Dairy Cattle';
 

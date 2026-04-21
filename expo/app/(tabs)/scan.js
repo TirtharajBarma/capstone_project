@@ -63,7 +63,9 @@ export default function ScanScreen() {
   const takePicture = async () => {
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 1,
+        skipProcessing: false,
+        exif: false,
       });
       setCapturedImage(photo.uri);
     }
