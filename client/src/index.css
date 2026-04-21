@@ -9,22 +9,43 @@
   --color-bg-card: #FFFFFF;
   --color-bg-card-subtle: #FDFBF9;
 
-  --font-display: anthropicSerif, "anthropicSerif Fallback", Georgia, "Times New Roman", Times, serif;
+  --font-display: "Inter", system-ui, -apple-system, sans-serif;
 
   --radius: 0.25rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
   --radius-full: 9999px;
+  
+  /* Custom easing */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
   body {
-    @apply font-display bg-bg-primary text-primary;
-    font-weight: 360;
+    font-family: var(--font-display);
+    background-color: var(--color-bg-primary);
+    color: var(--color-primary);
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
+  /* Material Symbols */
   .material-symbols-outlined {
     font-variation-settings:
     'FILL' 0,
@@ -32,122 +53,157 @@
     'GRAD' 0,
     'opsz' 24;
   }
-}
 
-@layer components {
-  /* Material 3 Buttons */
-  .btn-filled {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-md active:shadow-none disabled:opacity-50 disabled:pointer-events-none;
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 shadow-lg;
     background-color: var(--color-primary);
     color: white;
   }
-  .btn-filled:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
+  .btn-primary:hover {
+    @apply opacity-90 -translate-y-0.5;
+    box-shadow: 0 4px 12px rgba(26, 83, 92, 0.3);
+  }
+  .btn-primary:active {
+    @apply translate-y-0 scale-[0.98];
   }
 
-  .btn-outlined {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium border transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
-    border-color: var(--color-primary);
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium border transition-all duration-200;
+    border-color: rgba(26, 83, 92, 0.15);
     color: var(--color-primary);
   }
-  .btn-outlined:hover {
-    background-color: var(--color-bg-card-subtle);
+  .btn-secondary:hover {
+    @apply bg-primary/5;
   }
 
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium transition-colors duration-200;
-    color: var(--color-primary);
+  /* Cards */
+  .card {
+    @apply rounded-2xl p-6 bg-bg-card border border-primary/5 shadow-sm transition-all duration-200;
   }
-  .btn-ghost:hover {
-    background-color: var(--color-bg-card-subtle);
-  }
-
-  /* Material 3 Cards */
-  .card-elevated {
-    @apply rounded-3xl p-6 transition-all duration-300;
-    background-color: var(--color-bg-card);
-    color: var(--color-primary);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-  }
-  .dark .card-elevated {
-    background-color: var(--color-primary); /* Fallback for dark mode if needed, though not fully defined */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.5);
+  .card-hover {
+    @apply hover:border-primary/15 hover:shadow-md;
   }
 
-  .card-outlined {
-    @apply rounded-3xl p-6 border transition-all duration-300;
-    background-color: transparent;
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+  /* Input */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl bg-bg-card-subtle border border-primary/10 text-primary placeholder:text-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/20 transition-all;
   }
 
-  /* Navigation */
-  .navbar-material {
-    @apply sticky top-0 z-50 w-full bg-bg-card/90 backdrop-blur-md border-b border-primary/10 transition-colors duration-300;
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
   }
-
-  .nav-link {
-    @apply relative px-4 py-2 text-sm font-medium rounded-full transition-colors duration-200;
-    color: var(--color-primary);
-    opacity: 0.7;
-  }
-  .nav-link:hover, .nav-link.active {
-    background-color: var(--color-bg-card-subtle);
-    color: var(--color-primary);
-    opacity: 1;
-  }
-
-  /* Upload Area */
-  .upload-area {
-    @apply relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 cursor-pointer overflow-hidden;
-    border-color: var(--color-primary);
-    background-color: var(--color-bg-card);
-    opacity: 0.8;
-  }
-  .upload-area:hover, .upload-area.drag-over {
-    border-color: var(--color-primary);
-    background-color: var(--color-bg-card-subtle);
-    opacity: 1;
+  .badge-primary {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary;
   }
 }
 
-@layer utilities {
-  .text-on-surface {
-    color: var(--color-primary);
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInFromBottom {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
   }
-  .text-on-surface-variant {
-    color: var(--color-primary);
-    opacity: 0.7;
-  }
-  
-  .animate-enter {
-    animation: enter 0.4s cubic-bezier(0.2, 0, 0, 1) forwards;
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
   }
 }
 
-@keyframes enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes slideInFromTop {
+  from { 
+    opacity: 0; 
+    transform: translateY(-10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
-/* Loading Dots */
-.loading-dots {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
 }
-.loading-dots div {
+
+.animate-in {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: forwards;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInFromBottom;
+}
+
+.slide-in-from-top-2 {
+  animation-name: slideInFromTop;
+}
+
+.scale-in {
+  animation-name: scaleIn;
+}
+
+/* Skeleton Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-pulse {
+  animation: shimmer 2s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(26, 83, 92, 0.05) 25%,
+    rgba(26, 83, 92, 0.1) 50%,
+    rgba(26, 83, 92, 0.05) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Focus ring for accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-bg-primary;
+}
+
+/* Smooth scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  background-color: var(--color-primary);
-  border-radius: 50%;
-  animation: bounce 1.4s infinite ease-in-out both;
-}
-.loading-dots div:nth-child(1) { animation-delay: -0.32s; }
-.loading-dots div:nth-child(2) { animation-delay: -0.16s; }
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
 }
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 83, 92, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 83, 92, 0.25);
+}

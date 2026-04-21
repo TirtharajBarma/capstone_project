@@ -1,42 +1,55 @@
-export const pad2 = (n) => String(n).padStart(2, '0');
-
-export const formatDate = (d) => {
-  if (!d) return '-';
-  const date = new Date(d);
-  const day = pad2(date.getDate());
-  const month = pad2(date.getMonth() + 1);
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+export const formatDate = (dateString) => {
+  if (!dateString) return 'Unknown Date';
+  
+  const date = new Date(dateString);
+  
+  if (isNaN(date.getTime())) return 'Invalid Date';
+  
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(date);
 };
 
-export const formatDateTime = (d) => {
-  if (!d) return '-';
-  const date = new Date(d);
-  const day = pad2(date.getDate());
-  const month = pad2(date.getMonth() + 1);
-  const year = date.getFullYear();
-  const hours = pad2(date.getHours());
-  const mins = pad2(date.getMinutes());
-  return `${day}/${month}/${year} ${hours}:${mins}`;
+export const formatTime = (dateString) => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).format(date);
 };
 
-export const formatRelativeTime = (date) => {
-  if (!date) return '-';
+export const formatDateTime = (dateString) => {
+  return `${formatDate(dateString)} at ${formatTime(dateString)}`;
+};
+
+export const formatRelativeTime = (dateString) => {
+  if (!dateString) return 'Recent Analysis';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Recent Analysis';
   
   const now = new Date();
-  const then = new Date(date);
-  const diffMs = now - then;
+  const diffMs = now - date;
+  
   const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
   
-  if (diffSecs < 60) return 'Just now';
-  if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+  if (diffSecs < 60) return `Just now`;
+  if (diffMins < 60) return `${diffMins} min ago`;
   if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} ${Math.floor(diffDays / 7) === 1 ? 'week' : 'weeks'} ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} ${Math.floor(diffDays / 30) === 1 ? 'month' : 'months'} ago`;
-  return `${Math.floor(diffDays / 365)} ${Math.floor(diffDays / 365) === 1 ? 'year' : 'years'} ago`;
+  if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+  if (diffWeeks < 4) return `${diffWeeks} ${diffWeeks === 1 ? 'week' : 'weeks'} ago`;
+  if (diffMonths < 12) return `${diffMonths} ${diffMonths === 1 ? 'month' : 'months'} ago`;
+  
+  return formatDate(dateString);
 };

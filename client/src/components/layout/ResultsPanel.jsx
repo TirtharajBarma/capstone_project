@@ -1,9 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import BreedMap from '../ui/BreedMap';
-import { Modal, ModalHeader, ModalTitle, ModalFooter } from '../ui/Modal';
-import Button from '../ui/Button';
+import { Modal } from '../ui/Modal';
 
 const ResultsPanel = ({ 
   prediction, 
@@ -15,65 +13,107 @@ const ResultsPanel = ({
 }) => {
   const navigate = useNavigate();
   const [isDisclaimerOpen, setIsDisclaimerOpen] = React.useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
-  const [feedbackText, setFeedbackText] = React.useState('');
+
+  const normalizeConfidence = (value) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+      return 0;
+    }
+
+    if (numericValue <= 1) {
+      return numericValue * 100;
+    }
+
+    if (numericValue > 100) {
+      return Math.min(numericValue / 100, 100);
+    }
+
+    return numericValue;
+  };
+
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/');
+  };
 
   if (!prediction) return null;
 
-  // Normalize confidence score to handle both 0-1 decimal and 0-100 percentage inputs
-  let confidenceVal = prediction.confidence;
-  // If confidence is greater than 1, assume it's a percentage (e.g. 95) and convert to decimal (0.95)
-  // But if it's exactly 1, it could be 100% or 1.0. We'll assume 1.0 is 100%.
-  // Safest check: if it's > 1, it's definitely a percentage.
-  if (confidenceVal > 1) {
-    confidenceVal = confidenceVal / 100;
-  }
+  const confidencePercentage = Math.round(normalizeConfidence(prediction.confidence));
   
-  const confidencePercentage = Math.round(confidenceVal * 100);
-  
-  // Mock data for "Other Possibilities" if not provided
   const otherPossibilities = prediction.topPredictions && prediction.topPredictions.length > 1 
-    ? prediction.topPredictions.slice(1, 3).map(p => ({ name: p.breed, confidence: Math.round(p.confidence * 100) }))
-    : [
-        { name: 'Red Sindhi', confidence: 6 },
-        { name: 'Gir', confidence: 2 }
-      ];
+    ? prediction.topPredictions.slice(1, 3).map(p => ({ 
+        name: p.breed, 
+        confidence: Math.round(normalizeConfidence(p.confidence)) 
+      }))
+    : [];
 
   return (
-    <div className="layout-content-container flex flex-col mx-auto max-w-6xl w-full px-4 md:px-0 py-8 lg:py-12">
-      <div className="flex flex-col gap-2 mb-8">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-primary/70 hover:text-primary transition-colors w-fit"
-        >
-          <span className="material-symbols-outlined text-xl">arrow_back</span>
-          <span className="text-sm font-medium">Back</span>
-        </button>
-        <div className="flex flex-wrap justify-between gap-3">
-          <h1 className="text-4xl font-bold tracking-tight text-text-light dark:text-text-dark">Recognition Results</h1>
+    <div className="flex flex-col mx-auto max-w-6xl w-full px-4 lg:px-8 py-8 lg:py-12 gap-8 pt-32 lg:pt-36">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-6 mb-2">
+        <div className="flex flex-col gap-1">
+          <button 
+            onClick={handleBack}
+            className="group flex w-fit items-center gap-2 text-[13px] font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest mb-2"
+          >
+            <span className="material-symbols-outlined text-[16px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+            Back
+          </button>
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
+            Analysis Complete
+          </h1>
+        </div>
+        
+        <div className="hidden lg:flex items-center gap-3">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold tracking-wide transition-all shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
+            New Scan
+          </button>
+          <button 
+            onClick={onSave}
+            disabled={isSaved || isSaving}
+            className={`flex cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-2.5 text-sm font-bold tracking-wide transition-all shadow-md active:scale-[0.98] ${
+              isSaved 
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20 opacity-100' 
+                : isSaving 
+                  ? 'bg-indigo-400 text-white cursor-wait' 
+                  : 'bg-indigo-600 text-white shadow-indigo-600/20 hover:bg-indigo-700'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isSaved ? 'check_circle' : isSaving ? 'sync' : 'bookmark'}
+            </span>
+            {isSaved ? 'Saved to History' : isSaving ? 'Saving...' : 'Save Result'}
+          </button>
         </div>
       </div>
       
-      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start">
-        {/* Left Column */}
-        <div className="contents lg:flex lg:flex-col lg:gap-8">
-          {/* Image Card */}
-          <div 
-            className="order-1 lg:order-none w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-2xl aspect-[4/3] shadow-sm" 
-            style={{ backgroundImage: `url("${imageUrl}")` }}
-            role="img"
-            aria-label={`A photo of a ${prediction.breed}`}
-          ></div>
-          
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Left Column: Image and Map */}
+        <div className="flex flex-col gap-8">
+          <div className="group relative w-full aspect-[4/3] rounded-3xl overflow-hidden bg-slate-100 border border-slate-200 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.05)]">
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <img 
+              src={imageUrl} 
+              alt={prediction.breed}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
 
-
-          {/* Geographical Distribution Card */}
-          <div className="order-3 lg:order-none bg-panel-light dark:bg-panel-dark p-6 rounded-2xl shadow-sm flex flex-col h-full">
-            <h2 className="text-xl font-bold tracking-tight mb-4">Geographical Distribution</h2>
-            <p className="mb-4 text-text-light/80 dark:text-text-dark/80">
-              The {prediction.breed} breed is commonly found in the following regions.
-            </p>
-            <div className="aspect-[16/9] w-full bg-background-light dark:bg-background-dark rounded-xl overflow-hidden shadow-inner relative z-0">
+          <div className="flex flex-col gap-4 p-6 rounded-3xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">Geographical Origin</h2>
+              <span className="material-symbols-outlined text-slate-300 text-[24px]">public</span>
+            </div>
+            <div className="aspect-[16/9] w-full bg-slate-50 rounded-2xl overflow-hidden ring-1 ring-inset ring-slate-900/5 relative">
                {breedInfo?.location ? (
                  <BreedMap 
                    lat={breedInfo.location.lat} 
@@ -82,224 +122,180 @@ const ResultsPanel = ({
                    region={breedInfo.location.region}
                  />
                ) : (
-                 <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400">
-                   <p>Location data not available</p>
+                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                   <span className="material-symbols-outlined text-[32px] opacity-50">map</span>
+                   <p className="font-medium text-sm">Location data unavailable</p>
                  </div>
                )}
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="contents lg:flex lg:flex-col lg:gap-8 lg:mt-12">
-          {/* Breed Identified Card */}
-          <div className="order-2 lg:order-none bg-panel-light dark:bg-panel-dark p-6 rounded-2xl shadow-sm">
-            <h2 className="text-xl font-bold tracking-tight mb-2">Breed Identified</h2>
-            <h3 className="text-[#028174] text-4xl font-bold tracking-tight flex items-start gap-1" title="Click asterisk to read the disclaimer">
-              {prediction.breed}
-              <button 
-                onClick={() => setIsDisclaimerOpen(true)}
-                className="text-lg text-text-light/50 hover:text-[#028174] transition-colors cursor-pointer"
-                aria-label="Disclaimer"
-                title="Click to read the disclaimer"
-              >
-                *
-              </button>
-            </h3>
-            <p className="mt-2 text-text-light/80 dark:text-text-dark/80 leading-relaxed">
-              {breedInfo?.description || `Known for their distinctive features and characteristics typical of the ${prediction.breed} breed.`}
-            </p>
+        {/* Right Column: Breed Details */}
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-6 p-8 rounded-3xl bg-white border border-slate-100 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.05)] relative overflow-hidden">
             
-            <div className="mt-6">
-              <h4 className="text-sm font-semibold mb-2">Confidence Score</h4>
-              <div className="flex items-center gap-4">
-                <div className="w-full bg-background-light dark:bg-background-dark rounded-full h-4 overflow-hidden">
-                  <div 
-                    className="bg-secondary h-4 rounded-full transition-all duration-1000 ease-out" 
-                    style={{ width: `${Math.min(confidencePercentage, 100)}%` }}
-                  ></div>
-                </div>
-                <span className="text-lg font-bold text-secondary">{confidencePercentage}%</span>
-              </div>
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+              <span className="material-symbols-outlined text-[100px]">verified</span>
             </div>
 
-            {/* Breed Details Section */}
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              <div className="bg-background-light dark:bg-background-dark p-4 rounded-xl">
-                <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg">palette</span>
-                  Physical Traits
-                </h4>
-                <ul className="text-sm space-y-1 text-text-light/80 dark:text-text-dark/80">
-                  {breedInfo?.characteristics?.color && breedInfo.characteristics.color.length > 0 && (
-                    <li><span className="font-medium">Color:</span> {breedInfo.characteristics.color.join(', ')}</li>
-                  )}
-                  {breedInfo?.characteristics?.horns && (
-                    <li><span className="font-medium">Horns:</span> {breedInfo.characteristics.horns}</li>
-                  )}
-                  {breedInfo?.characteristics?.size && (
-                    <li><span className="font-medium">Size:</span> {breedInfo.characteristics.size}</li>
-                  )}
-                </ul>
+            <div className="relative z-10 flex flex-col items-start">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[13px] font-bold bg-indigo-50 text-indigo-600 mb-4 ring-1 ring-inset ring-indigo-500/10">
+                Primary Match
+              </span>
+              <h2 className="text-4xl font-black tracking-tighter text-slate-900 mb-2 flex items-center justify-between w-full">
+                {prediction.breed}
+                <button 
+                  onClick={() => setIsDisclaimerOpen(true)}
+                  className="flex items-center justify-center size-8 rounded-full bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  title="Disclaimer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">info</span>
+                </button>
+              </h2>
+              <p className="text-base font-medium text-slate-500 leading-relaxed max-w-lg">
+                {breedInfo?.description || `Typical characteristics of the ${prediction.breed} breed.`}
+              </p>
+            </div>
+            
+            <div className="relative z-10 flex flex-col gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center justify-between w-full">
+                <span className="text-[13px] font-bold tracking-tight text-slate-700 uppercase">Confidence Score</span>
+                <span className="text-lg font-black text-indigo-600">{confidencePercentage}%</span>
               </div>
-              
-              <div className="bg-background-light dark:bg-background-dark p-4 rounded-xl">
-                <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg">psychology</span>
-                  Key Characteristics
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {breedInfo?.traits && breedInfo.traits.length > 0 ? (
-                    breedInfo.traits.map((trait, index) => (
-                      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {trait}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-gray-500">No specific traits listed</span>
-                  )}
+              <div className="w-full bg-slate-200/60 rounded-full h-3 overflow-hidden shadow-inner">
+                <div 
+                  className="bg-indigo-600 h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden" 
+                  style={{ width: `${Math.min(confidencePercentage, 100)}%` }}
+                >
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-[200%] animate-[shimmer_2s_infinite]" />
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 border-t border-gray-300 dark:border-gray-700 pt-4">
-              <details className="group">
-                <summary className="font-semibold cursor-pointer flex justify-between items-center list-none">
-                  Other potential matches
-                  <span className="material-symbols-outlined transition-transform transform group-open:rotate-180">expand_more</span>
-                </summary>
-                <ul className="mt-3 space-y-2 text-sm text-text-light/80 dark:text-text-dark/80">
+            {(breedInfo?.characteristics || breedInfo?.traits) && (
+              <div className="relative z-10 grid grid-cols-2 gap-4 mt-2">
+                {breedInfo?.characteristics && (
+                  <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span className="flex items-center gap-2 text-[14px] font-bold text-slate-900 tracking-tight">
+                      <span className="material-symbols-outlined text-[18px] text-emerald-500">category</span>
+                      Physical Traits
+                    </span>
+                    <ul className="flex flex-col gap-2 text-[13px] font-medium text-slate-600">
+                      {breedInfo.characteristics.color && (
+                        <li className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                          <span className="text-slate-400">Color</span> 
+                          <span className="text-slate-900 text-right">{[].concat(breedInfo.characteristics.color).join(', ')}</span>
+                        </li>
+                      )}
+                      {breedInfo.characteristics.horns && (
+                        <li className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                          <span className="text-slate-400">Horns</span> 
+                          <span className="text-slate-900 text-right">{breedInfo.characteristics.horns}</span>
+                        </li>
+                      )}
+                      {breedInfo.characteristics.size && (
+                        <li className="flex justify-between">
+                          <span className="text-slate-400">Size</span> 
+                          <span className="text-slate-900 text-right">{breedInfo.characteristics.size}</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                
+                {breedInfo?.traits && breedInfo.traits.length > 0 && (
+                  <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden">
+                    <span className="flex items-center gap-2 text-[14px] font-bold text-slate-900 tracking-tight">
+                      <span className="material-symbols-outlined text-[18px] text-indigo-500">psychology</span>
+                      Key Details
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {breedInfo.traits.map((trait, index) => (
+                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 shadow-sm">
+                          {trait}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {otherPossibilities.length > 0 && (
+              <div className="relative z-10 pt-6 border-t border-slate-100 flex flex-col gap-4">
+                <span className="text-[13px] font-bold tracking-tight text-slate-700 uppercase">Other Possibilities</span>
+                <div className="flex flex-col gap-3">
                   {otherPossibilities.map((item, index) => (
-                    <li key={item.name || index} className="flex justify-between">
-                      <span>{item.name}</span> 
-                      <span>{item.confidence}%</span>
-                    </li>
+                    <div key={index} className="flex flex-col gap-1.5">
+                      <div className="flex justify-between text-[14px] font-semibold">
+                        <span className="text-slate-700">{item.name}</span> 
+                        <span className="text-slate-500">{item.confidence}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-slate-300 h-full rounded-full" 
+                          style={{ width: `${item.confidence}%` }}
+                        />
+                      </div>
+                    </div>
                   ))}
-                </ul>
-              </details>
-            </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Next Steps Card */}
-          <div className="order-4 lg:order-none bg-panel-light dark:bg-panel-dark p-6 rounded-2xl shadow-sm">
-            <h2 className="text-2xl font-bold tracking-tight mb-6">Next Steps</h2>
-            <div className="grid grid-cols-1 gap-4">
-              <button 
-                onClick={() => navigate('/')}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-4 bg-[#028174] text-white text-base font-bold leading-normal tracking-wide transition-colors hover:bg-[#028174]/80"
-              >
-                <span className="material-symbols-outlined">add_a_photo</span>
-                <span>Recognize Another</span>
-              </button>
-              
-              <button 
-                onClick={onSave}
-                disabled={isSaved || isSaving}
-                className={`flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-4 bg-white border-2 border-gray-300 text-gray-800 text-base font-semibold leading-normal tracking-wide transition-all ${
-                  isSaved || isSaving 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'hover:bg-gray-50 hover:border-[#028174]'
-                }`}
-              >
-                <span className="material-symbols-outlined">{isSaved ? 'check' : 'save'}</span>
-                <span>{isSaved ? 'Saved to History' : isSaving ? 'Saving...' : 'Save Result'}</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/history')}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-4 bg-white border-2 border-gray-300 text-gray-800 text-base font-semibold leading-normal tracking-wide transition-all hover:bg-gray-150 hover:border-[#028174]"
-              >
-                <span className="material-symbols-outlined">history</span>
-                <span>View History</span>
-              </button>
-              
-              <button 
-                onClick={() => navigate('/dashboard')}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-4 bg-white border-2 border-gray-300 text-gray-800 text-base font-semibold leading-normal tracking-wide transition-all hover:bg-gray-150 hover:border-[#028174]"
-              >
-                <span className="material-symbols-outlined">analytics</span>
-                <span>Analytics</span>
-              </button>
-            </div>
-            <div className="mt-8 pt-6 border-t border-gray-300 dark:border-gray-700 text-center">
-              <button 
-                onClick={() => setIsFeedbackOpen(true)}
-                className="text-sm text-[#028174] hover:underline bg-transparent border-none cursor-pointer"
-              >
-                Not the right breed? Help us improve.
-              </button>
-            </div>
+          {/* Mobile Actions */}
+          <div className="flex flex-col lg:hidden gap-3 w-full">
+            <button 
+              onClick={onSave}
+              disabled={isSaved || isSaving}
+              className={`flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-4 text-base font-bold tracking-wide transition-all shadow-md active:scale-[0.98] ${
+                isSaved 
+                  ? 'bg-emerald-500 text-white shadow-emerald-500/20 opacity-100' 
+                  : 'bg-indigo-600 text-white shadow-indigo-600/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isSaved ? 'check_circle' : 'bookmark'}
+              </span>
+              {isSaved ? 'Saved to History' : isSaving ? 'Saving...' : 'Save Result'}
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-4 bg-white border border-slate-200 text-slate-700 text-base font-bold tracking-wide transition-all shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]"
+            >
+              <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
+              New Scan
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Disclaimer Modal */}
       <Modal 
         isOpen={isDisclaimerOpen} 
         onClose={() => setIsDisclaimerOpen(false)}
-        title="Disclaimer"
+        title="Analysis Disclaimer"
       >
-        <div className="space-y-4">
-          <p className="text-text-light/80">
-            The identification result provided is generated by an AI model and may not be 100% accurate.
-          </p>
-          <p className="text-text-light/80">
-            Results can be affected by various factors including:
-          </p>
-          <ul className="list-disc pl-5 space-y-1 text-text-light/80">
-            <li>Image quality and lighting conditions</li>
-            <li>Angle and positioning of the animal</li>
-            <li>Similar physical characteristics between breeds</li>
-          </ul>
-          <p className="text-sm text-text-light/60 mt-4">
-            Please consult with a veterinary professional or breed expert for definitive identification.
-          </p>
+        <div className="p-6 bg-white rounded-3xl max-w-md w-full flex flex-col gap-6 shadow-2xl">
+          <div className="size-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[24px] text-indigo-600">info</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xl font-bold tracking-tight text-slate-900">AI Confidence Note</h3>
+            <p className="text-[15px] font-medium text-slate-500 leading-relaxed">
+              These results are generated by a neural network and may not be absolute. Lighting, angle, and mixed heritage can affect the outcome. For definitive identification, consult a veterinary specialist.
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsDisclaimerOpen(false)}
+            className="w-full py-3 bg-slate-900 text-white rounded-xl font-semibold tracking-wide hover:bg-slate-800 transition-colors"
+          >
+            I Understand
+          </button>
         </div>
-        <ModalFooter>
-          <Button onClick={() => setIsDisclaimerOpen(false)}>
-            Understood
-          </Button>
-        </ModalFooter>
       </Modal>
 
-      {/* Feedback Modal */}
-      <Modal 
-        isOpen={isFeedbackOpen} 
-        onClose={() => setIsFeedbackOpen(false)}
-        title="Help us improve"
-      >
-        <div className="space-y-4">
-          <p className="text-text-light/80">
-            We're sorry the result wasn't accurate. Please tell us what the correct breed is or why the result seems incorrect.
-          </p>
-          <textarea
-            value={feedbackText}
-            onChange={(e) => setFeedbackText(e.target.value)}
-            placeholder="E.g., This looks more like a Jersey cow because..."
-            className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:border-[#028174] focus:ring-1 focus:ring-[#028174] outline-none resize-none"
-          />
-        </div>
-        <ModalFooter>
-          <Button 
-            variant="ghost" 
-            onClick={() => setIsFeedbackOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={() => {
-              // Here we would typically send this to the backend
-              console.log('Feedback submitted:', feedbackText);
-              setFeedbackText('');
-              setIsFeedbackOpen(false);
-              alert('Thank you for your feedback!');
-            }}
-            disabled={!feedbackText.trim()}
-          >
-            Submit Feedback
-          </Button>
-        </ModalFooter>
-      </Modal>
     </div>
   );
 };

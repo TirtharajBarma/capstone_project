@@ -15,6 +15,32 @@ const UserDashboard = ({ onImageUpload }) => {
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const fileInputRef = useRef(null);
 
+  const normalizeConfidence = (value) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+      return 0;
+    }
+
+    if (numericValue <= 1) {
+      return numericValue * 100;
+    }
+
+    if (numericValue > 100) {
+      return Math.min(numericValue / 100, 100);
+    }
+
+    return numericValue;
+  };
+
+  const getRecognitionSubtitle = (recognition) => {
+    if (recognition?.createdAt) {
+      return `Saved ${formatRelativeTime(recognition.createdAt)}`;
+    }
+
+    return 'Saved recognition from your analysis history';
+  };
+
   // Fetch analytics data
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -142,19 +168,19 @@ const UserDashboard = ({ onImageUpload }) => {
       <div className="flex flex-1 flex-col p-4 md:p-8">
         <div className="flex flex-col gap-6">
           {/* Breadcrumbs */}
-          <div className="flex flex-wrap gap-2">
-            <Link className="text-primary text-base font-medium leading-normal hover:opacity-80" to="/">Home</Link>
-            <span className="text-primary/50 text-base font-medium leading-normal">/</span>
-            <span className="text-primary text-base font-medium leading-normal">Dashboard</span>
+          <div className="flex flex-wrap gap-2 pt-2 pb-1">
+            <Link className="text-slate-500 text-sm font-medium hover:text-slate-900 transition-colors" to="/">Home</Link>
+            <span className="text-slate-300 text-sm font-medium">/</span>
+            <span className="text-slate-900 text-sm font-medium">Dashboard</span>
           </div>
 
           {/* Page Heading */}
-          <div className="flex flex-wrap justify-between gap-3">
-            <div className="flex min-w-72 flex-col gap-2">
-              <p className="text-primary text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">
+          <div className="flex flex-wrap justify-between gap-3 mb-2">
+            <div className="flex min-w-72 flex-col gap-1.5">
+              <p className="text-slate-900 text-3xl font-bold tracking-tight">
                 Welcome back, {user?.firstName || 'User'}!
               </p>
-              <p className="text-primary text-base font-normal leading-normal">
+              <p className="text-slate-500 text-base font-medium tracking-wide">
                 Instantly identify cattle breeds by uploading an image.
               </p>
             </div>
@@ -162,23 +188,29 @@ const UserDashboard = ({ onImageUpload }) => {
 
           {/* Image Upload Area */}
           <div 
-            className={`flex flex-col items-center gap-6 rounded-xl border-2 border-dashed px-6 py-14 bg-bg-card transition-colors ${
-              dragOver ? 'border-primary bg-bg-card-subtle' : 'border-primary/20'
+            className={`cursor-pointer group flex flex-col items-center gap-6 rounded-2xl border-2 border-dashed px-6 py-14 transition-all duration-200 mt-2 ${
+              dragOver 
+                ? 'border-indigo-500 bg-indigo-50/50 scale-[1.02] shadow-sm' 
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 shadow-sm hover:shadow'
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
           >
+            <div className="flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-indigo-600 transition-colors shadow-sm ring-1 ring-slate-900/5">
+              <span className="material-symbols-outlined text-2xl">cloud_upload</span>
+            </div>
             <div className="flex max-w-[480px] flex-col items-center gap-2">
-              <p className="text-primary text-lg font-bold leading-tight tracking-[-0.015em] max-w-[480px] text-center">
+              <p className="text-slate-900 text-lg font-semibold tracking-tight max-w-[480px] text-center">
                 Drag & Drop your image here
               </p>
-              <p className="text-primary/70 text-sm font-normal leading-normal max-w-[480px] text-center">
-                Supports: JPG, PNG, WEBP
+              <p className="text-slate-500 text-sm font-medium tracking-wide max-w-[480px] text-center">
+                Supports: JPG, PNG, WEBP up to 10MB
               </p>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
               <input 
                 type="file" 
                 ref={fileInputRef}
@@ -188,76 +220,80 @@ const UserDashboard = ({ onImageUpload }) => {
               />
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:opacity-90 transition-colors"
+                className="flex items-center justify-center rounded-xl h-11 px-5 bg-slate-900 text-white text-sm font-medium shadow-sm hover:bg-slate-800 transition-all active:scale-[0.97]"
               >
-                <span className="truncate">Browse Files</span>
+                Browse Files
               </button>
               
               <button 
                 onClick={() => setShowCamera(true)}
-                className="flex items-center justify-center rounded-lg h-10 px-4 border border-primary text-primary hover:bg-bg-card-subtle transition-colors"
+                className="flex items-center justify-center rounded-xl h-11 px-4 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all active:scale-[0.97]"
+                aria-label="Use Camera"
               >
-                <span className="material-symbols-outlined">photo_camera</span>
+                <span className="material-symbols-outlined text-[20px]">photo_camera</span>
               </button>
             </div>
           </div>
 
           {/* Section: At a Glance */}
-          <div className="flex flex-col">
-            <h2 className="text-primary text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">At a Glance</h2>
+          <div className="flex flex-col mt-8">
+            <h2 className="text-slate-900 text-xl font-semibold tracking-tight pb-6">At a Glance</h2>
             {loadingAnalytics ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex flex-col gap-4 p-6 rounded-xl bg-bg-card animate-pulse">
+                  <div key={i} className="flex flex-col p-6 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] animate-pulse">
                     <div className="flex items-center gap-4">
-                      <div className="size-12 rounded-full bg-bg-card-subtle"></div>
+                      <div className="size-12 rounded-xl bg-slate-100"></div>
                       <div className="flex flex-col gap-2 flex-1">
-                        <div className="h-4 bg-bg-card-subtle rounded w-24"></div>
-                        <div className="h-8 bg-bg-card-subtle rounded w-16"></div>
+                        <div className="h-4 bg-slate-100 rounded w-24"></div>
+                        <div className="h-7 bg-slate-100 rounded w-16"></div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Stat Card: Total Analyses */}
-                <div className="flex flex-col gap-4 p-6 rounded-xl bg-bg-card">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center size-12 rounded-full bg-bg-card-subtle">
-                      <span className="material-symbols-outlined text-primary text-3xl">analytics</span>
+                <div className="flex flex-col p-6 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md hover:-translate-y-0.5 duration-300 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-slate-50 opacity-50 group-hover:bg-indigo-50 transition-colors"></div>
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-slate-50 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors ring-1 ring-slate-900/5">
+                      <span className="material-symbols-outlined text-[24px]">analytics</span>
                     </div>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium text-primary/70">Total Analyses</p>
-                      <p className="text-3xl font-bold text-primary">
+                    <div className="flex flex-col flex-1">
+                      <p className="text-sm font-medium text-slate-500 tracking-wide uppercase text-[11px]">Total Analyses</p>
+                      <p className="text-3xl font-bold tracking-tight text-slate-900 mt-1">
                         {analytics?.totalAnalyses?.toLocaleString() || '0'}
                       </p>
                     </div>
                   </div>
                 </div>
                 {/* Stat Card: Unique Breeds */}
-                <div className="flex flex-col gap-4 p-6 rounded-xl bg-bg-card">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center size-12 rounded-full bg-bg-card-subtle">
-                      <span className="material-symbols-outlined text-primary text-3xl">cruelty_free</span>
+                <div className="flex flex-col p-6 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md hover:-translate-y-0.5 duration-300 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-slate-50 opacity-50 group-hover:bg-emerald-50 transition-colors"></div>
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-slate-50 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors ring-1 ring-slate-900/5">
+                      <span className="material-symbols-outlined text-[24px]">cruelty_free</span>
                     </div>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium text-primary/70">Unique Breeds</p>
-                      <p className="text-3xl font-bold text-primary">
+                    <div className="flex flex-col flex-1">
+                      <p className="text-sm font-medium text-slate-500 tracking-wide uppercase text-[11px]">Unique Breeds</p>
+                      <p className="text-3xl font-bold tracking-tight text-slate-900 mt-1">
                         {analytics?.uniqueBreeds || '0'}
                       </p>
                     </div>
                   </div>
                 </div>
                 {/* Stat Card: Accuracy Rate */}
-                <div className="flex flex-col gap-4 p-6 rounded-xl bg-bg-card">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center size-12 rounded-full bg-bg-card-subtle">
-                      <span className="material-symbols-outlined text-primary text-3xl">verified</span>
+                <div className="flex flex-col p-6 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md hover:-translate-y-0.5 duration-300 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-slate-50 opacity-50 group-hover:bg-amber-50 transition-colors"></div>
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-slate-50 text-slate-500 group-hover:bg-amber-50 group-hover:text-amber-600 transition-colors ring-1 ring-slate-900/5">
+                      <span className="material-symbols-outlined text-[24px]">verified</span>
                     </div>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium text-primary/70">Accuracy Rate</p>
-                      <p className="text-3xl font-bold text-primary">
+                    <div className="flex flex-col flex-1">
+                      <p className="text-sm font-medium text-slate-500 tracking-wide uppercase text-[11px]">Avg. Confidence</p>
+                      <p className="text-3xl font-bold tracking-tight text-slate-900 mt-1">
                         {analytics?.accuracyRate ? `${analytics.accuracyRate.toFixed(1)}%` : '0%'}
                       </p>
                     </div>
@@ -268,66 +304,70 @@ const UserDashboard = ({ onImageUpload }) => {
           </div>
 
           {/* Section: Recent Recognitions */}
-          <div className="flex flex-col">
-            <h2 className="text-primary text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Recent Recognitions</h2>
+          <div className="flex flex-col mt-8">
+            <h2 className="text-slate-900 text-xl font-semibold tracking-tight pb-6">Recent Recognitions</h2>
             {loadingAnalytics ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex flex-col gap-3 p-4 rounded-xl bg-bg-card animate-pulse">
-                    <div className="aspect-[4/3] bg-bg-card-subtle rounded-lg"></div>
-                    <div className="h-4 bg-bg-card-subtle rounded w-3/4"></div>
-                    <div className="h-3 bg-bg-card-subtle rounded w-1/2"></div>
+                  <div key={i} className="flex flex-col gap-3 p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] animate-pulse">
+                    <div className="aspect-[4/3] bg-slate-100 rounded-xl"></div>
+                    <div className="h-4 bg-slate-100 rounded w-3/4 mt-1"></div>
+                    <div className="h-3 bg-slate-100 rounded w-1/2"></div>
                   </div>
                 ))}
               </div>
             ) : analytics?.recentRecognitions && analytics.recentRecognitions.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 {analytics.recentRecognitions.map((recognition, index) => (
                   <div 
                     key={index} 
-                    className="flex flex-col gap-3 p-4 rounded-xl bg-bg-card cursor-pointer hover:shadow-md transition-shadow"
+                    className="group flex flex-col p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all duration-300"
                     onClick={() => {
-                      // Navigate to results page with the prediction data
-                      // Note: We might need to reconstruct the full prediction object if it's not fully stored in recentRecognitions
-                      // For now, we'll pass what we have and let ResultsPage handle it or fetch if needed
-                      // Assuming recognition object has enough info or we might need to fetch by ID if available
-                      // But based on the schema, it seems we might just have basic info.
-                      // Let's try to pass it as 'prediction' state.
-                      
-                      // Construct a minimal prediction object
                       const predictionData = {
                         breed: recognition.breed,
-                        confidence: recognition.confidence || 0.95, // Fallback if not saved
-                        // We might not have the full topPredictions list here, so we might need to mock or omit
+                        confidence: recognition.confidence || 0.95,
                       };
                       
                       navigate('/results', { 
                         state: { 
                           prediction: predictionData,
                           imageUrl: recognition.breedImage,
-                          saved: true // It's from history, so it's saved
+                          saved: true
                         } 
                       });
                     }}
                   >
-                    <div 
-                      className="bg-center bg-no-repeat aspect-[4/3] bg-cover rounded-lg" 
-                      style={{ 
-                        backgroundImage: `url("${recognition.breedImage || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(recognition.breed)}")` 
-                      }}
-                    ></div>
-                    <div className="flex flex-col">
-                      <h3 className="text-base font-bold text-primary">{recognition.breed}</h3>
-                      <p className="text-sm text-primary/70">
-                        {formatRelativeTime(recognition.createdAt)}
-                      </p>
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100 mb-4 ring-1 ring-slate-900/5">
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105" 
+                        style={{ 
+                          backgroundImage: `url("${recognition.breedImage || 'https://via.placeholder.com/400x300?text=' + encodeURIComponent(recognition.breed)}")` 
+                        }}
+                      ></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      {/* Optional confidence badge on image */}
+                      {recognition.confidence && (
+                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[11px] font-bold text-slate-800 shadow-sm">
+                              {Math.round(normalizeConfidence(recognition.confidence))}%
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col px-1">
+                      <h3 className="text-base font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{recognition.breed}</h3>
+                        <p className="text-[13px] font-medium text-slate-500 tracking-wide mt-0.5">
+                          {getRecognitionSubtitle(recognition)}
+                        </p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-bg-card rounded-xl">
-                <p className="text-primary/50">No recent recognitions yet. Upload an image to get started!</p>
+              <div className="text-center py-16 bg-white border border-slate-100 border-dashed rounded-2xl">
+                <div className="flex size-12 items-center justify-center rounded-full bg-slate-50 mx-auto mb-4">
+                  <span className="material-symbols-outlined text-slate-400 text-[24px]">image</span>
+                </div>
+                <p className="text-slate-500 font-medium">No recent recognitions yet.</p>
+                <p className="text-slate-400 text-sm mt-1">Upload an image to get started.</p>
               </div>
             )}
           </div>
@@ -335,11 +375,11 @@ const UserDashboard = ({ onImageUpload }) => {
       </div>
       
       {/* Footer */}
-      <footer className="mt-auto p-8 border-t border-primary/10">
-        <div className="flex justify-center items-center gap-6">
-          <a className="text-sm text-primary/70 hover:text-primary" href="#">About</a>
-          <a className="text-sm text-primary/70 hover:text-primary" href="#">Contact</a>
-          <a className="text-sm text-primary/70 hover:text-primary" href="#">Terms of Service</a>
+      <footer className="mt-auto py-8">
+        <div className="flex justify-center items-center gap-8">
+          <a className="text-sm font-medium tracking-wide text-slate-400 hover:text-slate-900 transition-colors" href="#">About</a>
+          <a className="text-sm font-medium tracking-wide text-slate-400 hover:text-slate-900 transition-colors" href="#">Contact</a>
+          <a className="text-sm font-medium tracking-wide text-slate-400 hover:text-slate-900 transition-colors" href="#">Terms of Service</a>
         </div>
       </footer>
     </DashboardLayout>

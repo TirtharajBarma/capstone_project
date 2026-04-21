@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
 import { historyAPI, handleAPIError } from '../services/api';
 import { Skeleton, CardSkeleton, ChartSkeleton, TableSkeleton, StatsGridSkeleton } from '../components/ui';
 
 const AnalyticsDashboard = () => {
   const { user } = useUser();
   const navigate = useNavigate();
-  const [dateRange, setDateRange] = useState('all');
+  const [dateRange, setDateRange] = useState('30');
   const [stats, setStats] = useState({
     totalSubmissions: 0,
     accuracy: 0,
@@ -24,24 +24,6 @@ const AnalyticsDashboard = () => {
   const [recentSubmissions, setRecentSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const normalizeConfidence = (value) => {
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) {
-      return 0;
-    }
-
-    if (numericValue <= 1) {
-      return numericValue * 100;
-    }
-
-    if (numericValue > 100) {
-      return Math.min(numericValue / 100, 100);
-    }
-
-    return numericValue;
-  };
-
   useEffect(() => {
     const fetchAnalytics = async () => {
       if (!user?.id) return;
@@ -49,14 +31,14 @@ const AnalyticsDashboard = () => {
       try {
         setLoading(true);
 
-        let params = {};
-        if (dateRange !== 'all') {
-          const endDate = new Date();
-          const startDate = new Date();
-          startDate.setDate(startDate.getDate() - parseInt(dateRange));
-          params = { startDate: startDate.toISOString(), endDate: endDate.toISOString() };
-        }
-        const statsResponse = await historyAPI.getStats(params);
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(dateRange));
+
+        const statsResponse = await historyAPI.getStats({ 
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        });
         
         if (statsResponse.success) {
           const data = statsResponse.data;
@@ -97,7 +79,7 @@ const AnalyticsDashboard = () => {
           setRecentSubmissions(predictions.map(pred => ({
             id: pred._id,
             breed: pred.predictedBreed,
-            confidence: `${Math.round(normalizeConfidence(pred.confidencePercentage))}%`,
+            confidence: `${pred.confidencePercentage}%`,
             status: 'Successful',
             date: new Date(pred.createdAt).toISOString().split('T')[0],
             image: pred.imageUrl || `https://via.placeholder.com/400x300?text=${encodeURIComponent(pred.predictedBreed)}`
@@ -164,7 +146,6 @@ const AnalyticsDashboard = () => {
               <option value="30">Last 30 Days</option>
               <option value="90">Last 90 Days</option>
               <option value="365">Last Year</option>
-              <option value="all">All Time</option>
             </select>
           </header>
 
@@ -228,18 +209,16 @@ const AnalyticsDashboard = () => {
                 <p className="text-lg font-bold tracking-tight text-slate-900">Breed Distribution</p>
                 <p className="text-[13px] font-medium text-slate-500">Top 7 breeds in selected period</p>
               </div>
-              <div className="h-[320px] w-full">
+              <div style={{ width: '100%', height: 280 }}>
                 {breedData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={breedData} margin={{ top: 18, right: 12, left: 0, bottom: 0 }} barCategoryGap="28%">
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} width={28} />
+                  <ResponsiveContainer>
+                    <BarChart data={breedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <XAxis 
                         dataKey="name" 
                         axisLine={false} 
                         tickLine={false} 
                         tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
-                        dy={10}
+                        dy={10} 
                       />
                       <Tooltip 
                         cursor={{ fill: '#f8fafc' }}
@@ -248,20 +227,16 @@ const AnalyticsDashboard = () => {
                       <Bar 
                         dataKey="value" 
                         fill="#4f46e5" 
-                        radius={[8, 8, 0, 0]} 
-                        barSize={40}
+                        radius={[6, 6, 6, 6]} 
+                        barSize={32}
                         animationDuration={1500}
                         animationEasing="ease-out"
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 text-center">
-                    <div className="flex size-12 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-100">
-                      <span className="material-symbols-outlined text-slate-400 text-[24px]">bar_chart</span>
-                    </div>
-                    <p className="text-slate-600 font-semibold">No breed distribution data yet</p>
-                    <p className="text-slate-400 text-sm">Keep scanning to populate this chart.</p>
+                  <div className="flex h-full items-center justify-center border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                    <p className="text-slate-500 font-medium">No data available for this period</p>
                   </div>
                 )}
               </div>
@@ -272,18 +247,16 @@ const AnalyticsDashboard = () => {
                 <p className="text-lg font-bold tracking-tight text-slate-900">Accuracy Trend</p>
                 <p className="text-[13px] font-medium text-slate-500">Average confidence over time</p>
               </div>
-              <div className="h-[320px] w-full">
+              <div style={{ width: '100%', height: 280 }}>
                 {accuracyData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={accuracyData} margin={{ top: 18, right: 12, left: 0, bottom: 0 }}>
+                  <ResponsiveContainer>
+                    <AreaChart data={accuracyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} width={36} domain={[0, 100]} />
                       <XAxis 
                         dataKey="name" 
                         axisLine={false} 
@@ -304,18 +277,13 @@ const AnalyticsDashboard = () => {
                         fill="url(#colorAccuracy)" 
                         animationDuration={1500}
                         animationEasing="ease-out"
-                        dot={false}
-                        activeDot={{ r: 5, strokeWidth: 0, fill: '#10b981' }}
+                        activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 text-center">
-                    <div className="flex size-12 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-100">
-                      <span className="material-symbols-outlined text-slate-400 text-[24px]">show_chart</span>
-                    </div>
-                    <p className="text-slate-600 font-semibold">No accuracy trend data yet</p>
-                    <p className="text-slate-400 text-sm">The chart will fill in as predictions accumulate.</p>
+                  <div className="flex h-full items-center justify-center border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                    <p className="text-slate-500 font-medium">No data available for this period</p>
                   </div>
                 )}
               </div>
@@ -354,7 +322,7 @@ const AnalyticsDashboard = () => {
                         onClick={() => {
                           const predictionData = {
                             breed: submission.breed,
-                            confidence: normalizeConfidence(parseFloat(submission.confidence)),
+                            confidence: parseFloat(submission.confidence) / 100,
                           };
                           navigate('/results', {
                             state: {

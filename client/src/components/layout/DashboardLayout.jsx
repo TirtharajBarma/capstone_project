@@ -13,19 +13,19 @@ const DashboardLayout = ({ children }) => {
   };
 
   return (
-    <div className="relative flex h-screen w-full bg-bg-primary overflow-hidden">
+    <div className="relative flex h-screen w-full bg-[#f8fafc] overflow-hidden font-geist">
       {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-bg-card border-b border-primary/10 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
             onClick={toggleSidebar}
-            className="p-2 -ml-2 rounded-lg hover:bg-bg-card-subtle text-primary"
+            className="p-2 -ml-2 rounded-xl hover:bg-slate-50 text-slate-800 transition-colors active:scale-95"
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">pets</span>
-            <span className="font-bold text-primary">BreedRec</span>
+            <span className="material-symbols-outlined text-indigo-600 text-2xl">pets</span>
+            <span className="font-bold tracking-tight text-slate-900">BreedRec</span>
           </div>
         </div>
       </div>
@@ -34,17 +34,17 @@ const DashboardLayout = ({ children }) => {
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 pt-16 lg:pt-0 overflow-y-auto h-full">
-        {children}
+      <main className="flex-1 flex flex-col min-w-0 pt-[60px] lg:pt-0 overflow-y-auto h-full px-2 lg:px-6">
+        <div className="max-w-[1240px] w-full mx-auto pb-12">
+          {children}
+        </div>
       </main>
 
       {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={closeSidebar}
-        />
-      )}
+      <div 
+        className={`fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-20 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={closeSidebar}
+      />
     </div>
   );
 };

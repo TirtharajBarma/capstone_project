@@ -51,142 +51,199 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
 
   const handleRemoveImage = () => {
     setSelectedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  // Determine current state
   let currentState = 'default';
   if (isLoading) currentState = 'loading';
   else if (error) currentState = 'error';
   else if (selectedImage) currentState = 'selected';
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-2xl mx-auto">
       {showCamera && (
         <CameraCapture 
           onCapture={handleCameraCapture} 
           onClose={() => setShowCamera(false)} 
         />
       )}
+      
       <div className="flex flex-col items-center gap-8 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <h1 className="text-4xl font-black tracking-tighter text-custom-text sm:text-5xl md:text-6xl">
-            Instantly Identify Cow & Buffalo Breeds
-          </h1>
-          <p className="max-w-2xl text-base font-normal text-gray-600 sm:text-lg">
-            Our advanced recognition tool helps you discover the breed of cattle with a single photo. Simple, fast, and accurate—empowering farmers and enthusiasts alike.
-          </p>
-        </div>
+        {/* Hero Text - Only show on default state */}
+        {currentState === 'default' && (
+          <div className="space-y-3 animate-in slide-in-from-bottom-4 duration-500">
+            <h1 className="text-4xl font-bold tracking-tight text-primary sm:text-5xl">
+              Identify Cattle Breeds
+            </h1>
+            <p className="max-w-lg mx-auto text-base text-primary/60">
+              Upload a photo of any cow or buffalo to instantly identify its breed using our AI-powered recognition system.
+            </p>
+          </div>
+        )}
 
-        {/* State: Default (Upload) */}
+        {/* Upload Area */}
         {currentState === 'default' && (
           <div 
-            className={`w-full max-w-2xl transition-all duration-200 ${dragOver ? 'scale-[1.02] ring-2 ring-primary' : ''}`}
+            className={`
+              w-full transition-all duration-300 
+              ${dragOver ? 'scale-[1.02]' : ''}
+            `}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div className="flex flex-col items-center gap-6 rounded-xl border-2 border-dashed border-gray-300 bg-white/50 px-6 py-10 shadow-sm">
-              <span className="material-symbols-outlined text-5xl text-gray-400">upload_file</span>
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-lg font-bold text-custom-text">Drag & Drop an Image Here</p>
-                <p className="text-sm text-gray-500">Supported formats: JPG, PNG. Max file size: 10MB.</p>
-              </div>
-              <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={handleFileSelect} 
-                />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-sm hover:bg-opacity-90 sm:w-auto"
-                >
-                  <span className="truncate">Choose File</span>
-                </button>
-                
-                <span className="hidden text-sm text-gray-500 sm:block">or</span>
-                
-                <button 
-                  onClick={() => setShowCamera(true)}
-                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-gray-100 px-6 text-sm font-bold text-custom-text hover:bg-gray-200 sm:w-auto"
-                >
-                  <span className="material-symbols-outlined text-xl">photo_camera</span>
-                  <span>Use Camera</span>
-                </button>
+            <div className={`
+              relative rounded-3xl border-2 border-dashed p-12 text-center transition-all duration-300
+              ${dragOver 
+                ? 'border-primary bg-primary/5 scale-[1.01]' 
+                : 'border-primary/15 hover:border-primary/25 bg-bg-card'
+              }
+            `}>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileSelect} 
+              />
+              
+              <div className="flex flex-col items-center gap-5">
+                {/* Icon */}
+                <div className={`
+                  w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-300
+                  ${dragOver ? 'bg-primary/10 scale-110' : 'bg-primary/5'}
+                `}>
+                  <svg className={`w-10 h-10 transition-colors duration-300 ${dragOver ? 'text-primary' : 'text-primary/40'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold text-primary">
+                    {dragOver ? 'Drop your image here' : 'Drag & drop your image'}
+                  </p>
+                  <p className="text-sm text-primary/50">or click to browse • JPG, PNG up to 10MB</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm pt-2">
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/25"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Choose File
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowCamera(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full border-2 border-primary/15 text-primary font-semibold hover:bg-primary/5 active:scale-[0.98] transition-all duration-200"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Use Camera
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* State: Selected (Preview) */}
+        {/* Preview State */}
         {currentState === 'selected' && (
-          <div className="w-full max-w-2xl flex flex-col gap-6">
-            <div className="flex flex-col">
-              <h3 className="px-1 pb-2 pt-0 text-lg font-bold tracking-tight text-custom-text text-left">Image Preview</h3>
-              <div className="flex flex-col items-center gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:flex-row">
-                <div className="aspect-video w-full max-w-xs flex-shrink-0 overflow-hidden rounded-md bg-gray-100 sm:w-40">
+          <div className="w-full animate-in slide-in-from-bottom-4 duration-300">
+            <div className="rounded-3xl border border-primary/10 bg-bg-card p-6 shadow-lg">
+              <div className="flex flex-col sm:flex-row gap-6">
+                {/* Image Preview */}
+                <div className="relative rounded-2xl overflow-hidden bg-primary/5 w-full sm:w-48 h-48 flex-shrink-0">
                   <img 
-                    className="h-full w-full object-cover" 
+                    className="w-full h-full object-cover"
                     src={URL.createObjectURL(selectedImage)} 
                     alt="Preview" 
                   />
+                  <button 
+                    onClick={handleRemoveImage}
+                    className="absolute top-3 right-3 p-2 rounded-full bg-white/90 shadow-lg hover:bg-white transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="flex flex-grow flex-col text-center sm:text-left">
-                  <p className="font-semibold text-custom-text truncate max-w-[200px]">{selectedImage.name}</p>
-                  <p className="text-sm text-gray-500">{(selectedImage.size / (1024 * 1024)).toFixed(2)} MB</p>
+
+                {/* Info & Action */}
+                <div className="flex flex-col justify-between flex-grow">
+                  <div>
+                    <h3 className="text-lg font-semibold text-primary">Ready to Analyze</h3>
+                    <p className="text-sm text-primary/50 mt-1 truncate">{selectedImage.name}</p>
+                    <p className="text-sm text-primary/40">{(selectedImage.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    <button 
+                      onClick={handleRemoveImage}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-primary/15 text-primary font-medium hover:bg-primary/5 transition-colors"
+                    >
+                      Change
+                    </button>
+                    <button 
+                      onClick={handleAnalyze}
+                      className="flex-[2] flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/25"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Analyze Breed
+                    </button>
+                  </div>
                 </div>
-                <button 
-                  onClick={handleRemoveImage}
-                  className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-gray-100 px-4 text-sm font-medium text-custom-text hover:bg-gray-200 sm:w-auto"
-                >
-                  <span className="material-symbols-outlined text-xl">delete</span>
-                  <span className="truncate">Remove</span>
-                </button>
               </div>
             </div>
-            <div className="flex justify-center">
-                <button 
-                  onClick={handleAnalyze}
-                  className="flex h-12 min-w-[84px] w-full max-w-md cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-primary px-6 text-base font-bold tracking-wide text-white shadow-md hover:bg-opacity-90"
-                >
-                  <span className="truncate">Analyze Breed</span>
-                </button>
-              </div>
           </div>
         )}
 
-        {/* State: Loading */}
+        {/* Loading State */}
         {currentState === 'loading' && (
-          <div className="w-full max-w-2xl flex flex-col gap-6">
-            <div className="flex flex-col items-center gap-6 rounded-xl border border-gray-200 bg-white px-6 py-14 text-center shadow-sm">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <div className="flex max-w-md flex-col items-center gap-2">
-                <p className="text-lg font-bold text-custom-text">Analyzing Image...</p>
-                <p className="text-sm text-gray-500">Please wait while we identify the breed. This may take a moment.</p>
+          <div className="w-full animate-in slide-in-from-bottom-4 duration-300">
+            <div className="rounded-3xl border border-primary/10 bg-bg-card p-12 text-center">
+              <div className="relative w-20 h-20 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full border-4 border-primary/10"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
               </div>
-              <div className="mt-4 w-full max-w-sm rounded-full bg-gray-200 h-2.5">
-                <div className="bg-primary h-2.5 rounded-full" style={{ width: '45%' }}></div>
+              
+              <h3 className="text-xl font-semibold text-primary mb-2">Analyzing Image...</h3>
+              <p className="text-primary/50 mb-6">Our AI is identifying the breed</p>
+              
+              <div className="w-full max-w-xs mx-auto h-2 bg-primary/10 rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }}></div>
               </div>
             </div>
           </div>
         )}
 
-        {/* State: Error */}
+        {/* Error State */}
         {currentState === 'error' && (
-          <div className="w-full max-w-2xl flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-6 rounded-xl border-2 border-dashed border-custom-error/50 bg-custom-error/5 px-6 py-14 text-center shadow-sm">
-              <span className="material-symbols-outlined text-5xl text-custom-error">error</span>
-              <div className="flex max-w-md flex-col items-center gap-2">
-                <p className="text-lg font-bold text-custom-text">Upload Failed</p>
-                <p className="text-sm text-gray-600">{error || "The selected file is not a supported format. Please upload a JPG or PNG file under 10MB."}</p>
+          <div className="w-full animate-in slide-in-from-bottom-4 duration-300">
+            <div className="rounded-3xl border-2 border-red-100 bg-red-50/50 p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
               </div>
+              
+              <h3 className="text-lg font-semibold text-red-600 mb-2">Upload Failed</h3>
+              <p className="text-red-500/70 mb-6">{error || "Something went wrong. Please try again."}</p>
+              
               <button 
                 onClick={() => setSelectedImage(null)}
-                className="flex h-10 min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-custom-error px-4 text-sm font-bold text-white hover:bg-custom-error/90"
+                className="px-6 py-3 rounded-full bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
               >
-                <span className="truncate">Try Again</span>
+                Try Again
               </button>
             </div>
           </div>
