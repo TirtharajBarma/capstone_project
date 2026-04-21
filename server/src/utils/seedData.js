@@ -21,7 +21,8 @@ const BUFFALO_SET = new Set([
   'Murrah',
   'Nili_Ravi',
   'Surti',
-  'Nagpuri'
+  'Nagpuri',
+  'Banni'
 ]);
 
 // Master Data Map: Combines Origin, Location, Description, Traits, and Characteristics
@@ -176,10 +177,88 @@ const BREED_DATA = {
   },
   Red_Dane: {
     origin: 'Denmark',
-    location: { lat: 56.26, lng: 9.50, region: 'Denmark' }, // Added location
+    location: { lat: 56.26, lng: 9.50, region: 'Denmark' },
     description: 'A Danish dairy breed known for high milk production and good fertility.',
     traits: ['Dairy breed', 'High yield', 'Fertile'],
     characteristics: { size: 'large', color: ['Red'], horns: 'Short' }
+  },
+  // Additional breeds from classes.json (41 total)
+  Alambadi: {
+    origin: 'Tamil Nadu, India',
+    location: { lat: 11.1271, lng: 78.6569, region: 'Tamil Nadu' },
+    description: 'Alambadi is a draught breed from Tamil Nadu, known for its endurance. Derived from Hallikar.',
+    traits: ['Drought', 'Hardy', 'Workable'],
+    characteristics: { size: 'medium', color: ['grey', 'white'], horns: 'lyre-shaped' }
+  },
+  Bargur: {
+    origin: 'Tamil Nadu, India',
+    location: { lat: 11.6643, lng: 78.1455, region: 'Tamil Nadu' },
+    description: 'Bargur is a draught breed from Tamil Nadu, known for stamina and hill work capability.',
+    traits: ['Drought', 'Hardy', 'Mountain capable'],
+    characteristics: { size: 'medium', color: ['brown', 'grey'], horns: 'short' }
+  },
+  Kasargod: {
+    origin: 'Karnataka, India',
+    location: { lat: 12.5000, lng: 74.9000, region: 'Karnataka Coast' },
+    description: 'Kasargod is a cattle breed from Karnataka coastal region, tolerant to humid climate.',
+    traits: ['Humidity tolerant', 'Drought'],
+    characteristics: { size: 'small', color: ['grey', 'brown'], horns: 'short' }
+  },
+  Kenkatha: {
+    origin: 'Uttar Pradesh, India',
+    location: { lat: 25.3176, lng: 82.9739, region: 'Bundelkhand, UP' },
+    description: 'Kenkatha is a draught breed from UP and MP. Found in Bundelkhand region.',
+    traits: ['Drought', 'Hardy', 'Workable'],
+    characteristics: { size: 'medium', color: ['grey', 'white'], horns: 'short' }
+  },
+  Kherigarh: {
+    origin: 'Uttar Pradesh, India',
+    location: { lat: 27.2046, lng: 77.4977, region: 'UP' },
+    description: 'Kherigarh is a draught breed from UP with white or light grey color.',
+    traits: ['Drought', 'Compact'],
+    characteristics: { size: 'medium', color: ['white', 'grey'], horns: 'short' }
+  },
+  Malnad_gidda: {
+    origin: 'Karnataka, India',
+    location: { lat: 13.5782, lng: 75.3630, region: 'Malnad, Karnataka' },
+    description: 'Malnad Gidda is a cattle breed from Karnataka Malnad region, known for black coat.',
+    traits: ['Dairy', 'Rainfall tolerant'],
+    characteristics: { size: 'medium', color: ['black'], horns: 'short' }
+  },
+  Nagori: {
+    origin: 'Rajasthan, India',
+    location: { lat: 27.0238, lng: 74.2179, region: 'Rajasthan' },
+    description: 'Nagori is a draught breed from Rajasthan with grey white color and long horns.',
+    traits: ['Drought', 'Fast', 'Stamina'],
+    characteristics: { size: 'medium', color: ['grey', 'white'], horns: 'long' }
+  },
+  Nimari: {
+    origin: 'Madhya Pradesh, India',
+    location: { lat: 23.4735, lng: 77.7510, region: 'Madhya Pradesh' },
+    description: 'Nimari is a draught breed from MP with white/grey and red markings.',
+    traits: ['Drought', 'Strong'],
+    characteristics: { size: 'medium', color: ['white', 'grey', 'red'], horns: 'short' }
+  },
+  Pulikulam: {
+    origin: 'Tamil Nadu, India',
+    location: { lat: 10.7905, lng: 78.6855, region: 'Tamil Nadu' },
+    description: 'Pulikulam is a draught breed from Tamil Nadu with compact build.',
+    traits: ['Drought', 'Compact'],
+    characteristics: { size: 'small', color: ['grey', 'brown'], horns: 'lyre-shaped' }
+  },
+  Umblachery: {
+    origin: 'Tamil Nadu, India',
+    location: { lat: 10.7905, lng: 79.8498, region: 'Tamil Nadu' },
+    description: 'Umblachery is a draught breed from Tamil Nadu used for agricultural work.',
+    traits: ['Drought', 'Strong', 'Workable'],
+    characteristics: { size: 'medium', color: ['grey', 'white'], horns: 'lyre-shaped' }
+  },
+  Banni: {
+    origin: 'Gujarat, India',
+    location: { lat: 23.5226, lng: 68.8898, region: 'Kutch, Gujarat' },
+    description: 'Banni is a buffalo breed from Gujarat known for black coat and twisted horns.',
+    traits: ['Dairy', 'High fat milk'],
+    characteristics: { size: 'large', color: ['black'], horns: 'twisted' }
   },
 
   // --- BUFFALO BREEDS ---
@@ -252,11 +331,18 @@ const seedBreeds = async () => {
   try {
     console.log('Reading classes from:', classesPath);
     const classesRaw = await fs.readFile(classesPath, 'utf-8');
-    const classes = JSON.parse(classesRaw);
+    const classesObj = JSON.parse(classesRaw);
+
+    // Handle both array and object formats
+    const classes = Array.isArray(classesObj) 
+      ? classesObj 
+      : Object.values(classesObj);
 
     if (!Array.isArray(classes) || classes.length === 0) {
       throw new Error('classes.json is empty or invalid');
     }
+
+    console.log(`Found ${classes.length} breeds`);
 
     console.log('Connecting to database...');
     await connectDB();

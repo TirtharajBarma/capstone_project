@@ -1,206 +1,193 @@
 import os
-import time
 import json
-from typing import List, Tuple, Dict
-
+import pickle
+import io
+import numpy as np
 import torch
-import torch.nn.functional as F
-from PIL import Image, ImageOps
-from torchvision import transforms
-from torchvision import models as tvm
 import torch.nn as nn
+from torchvision import transforms, models
+from PIL import Image
+import warnings
+
+warnings.filterwarnings("ignore")
+
+MODEL_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(MODEL_DIR, "cow_breed_model")
+CLASSES_PATH = os.path.join(MODEL_DIR, "classes.json")
+
+BUFFALO_BREEDS = [
+    "Banni",
+    "Bhadawari",
+    "Jaffrabadi",
+    "Mehsana",
+    "Murrah",
+    "Nagpuri",
+    "Nili_Ravi",
+    "Surti",
+]
+
+
+class HybridCattleClassifier(nn.Module):
+    def __init__(self, num_classes=41):
+        super().__init__()
+
+        self.effnet = models.efficientnet_b3(weights=None)
+        eff_dim = self.effnet.classifier[1].in_features
+        self.effnet.classifier = nn.Identity()
+
+        self.resnet = models.resnet50(weights=None)
+        res_dim = self.resnet.fc.in_features
+        self.resnet.fc = nn.Identity()
+
+        self.eff_proj = nn.Linear(eff_dim, 512)
+        self.res_proj = nn.Linear(res_dim, 512)
+
+        self.fusion = nn.Linear(1024, 512)
+
+        self.attention = nn.Sequential(
+            nn.Linear(512, 512 // 16),
+            nn.ReLU(),
+            nn.Linear(512 // 16, 512),
+            nn.Sigmoid(),
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(0.6),
+            nn.Linear(256, num_classes),
+        )
+
+    def forward(self, x):
+        f1 = self.effnet(x)
+        f2 = self.resnet(x)
+
+        f1 = self.eff_proj(f1)
+        f2 = self.res_proj(f2)
+
+        alpha = torch.sigmoid(self.fusion(torch.cat([f1, f2], dim=1)))
+        fused = alpha * f1 + (1 - alpha) * f2
+
+        attn_weights = self.attention(torch.relu(fused))
+        fused = fused * attn_weights
+
+        return self.classifier(fused)
 
 
 class ModelService:
-    def __init__(self, model_path: str, classes_path: str, device: str | None = None):
-        self.model_path = model_path
-        self.classes_path = classes_path
-        self.device = torch.device(device) if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, model_dir=MODEL_PATH):
+        self.model_dir = model_dir
+        self.classes = self._load_classes()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = self._load_model()
+        self.transform = self._get_transforms()
 
-        self.classes = self._load_classes(classes_path)
-        self.cattle_categories = self._load_cattle_categories()
-        self.model = self._load_model(model_path)
-
-        # EfficientNet V2-S requires 384x384 input by default, but we'll use 224 for compatibility
-        input_size = int(os.getenv("MODEL_INPUT_SIZE", "224"))
-        self.temperature = float(os.getenv("MODEL_TEMPERATURE", "1.0"))
-        self.reject_threshold = float(os.getenv("MODEL_REJECT_THRESHOLD", "0.45"))
-        self.margin_threshold = float(os.getenv("MODEL_MARGIN_THRESHOLD", "0.05"))
-        self.tta = int(os.getenv("MODEL_TTA", "1"))
-        # Transform for EfficientNet V2-S
-        self.transform = transforms.Compose([
-            transforms.Resize(int(input_size * 1.14)),
-            transforms.CenterCrop(input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-
-        # TTA functions
-        try:
-            _ = Image.Resampling.BILINEAR
-        except AttributeError:
-            class _Resample:
-                BILINEAR = Image.BILINEAR
-            Image.Resampling = _Resample
-
-        self._tta_fns = [
-            lambda im: im,
-            lambda im: ImageOps.mirror(im),
-        ]
-
-        print(
-            f"[ModelService] EfficientNet V2-S loaded: input_size={input_size}, temp={self.temperature}, "
-            f"reject={self.reject_threshold}, margin={self.margin_threshold}, tta={self.tta}, "
-            f"classes={len(self.classes)} on device={self.device}"
-        )
-
-    def _load_classes(self, classes_path: str) -> List[str]:
-        if not os.path.exists(classes_path):
-            raise FileNotFoundError(f"Classes file not found: {classes_path}")
-        with open(classes_path, "r") as f:
-            classes = json.load(f)
-        if not isinstance(classes, list) or not all(isinstance(c, str) for c in classes):
-            raise ValueError("classes.json must be a JSON array of class names (strings)")
-        return classes
-
-    def _load_cattle_categories(self) -> Dict[str, List[str]]:
-        """Load cattle categories for cow/buffalo classification"""
-        categories_path = os.path.join(os.path.dirname(__file__), "cattle_categories.json")
-        if not os.path.exists(categories_path):
-            # Fallback classification based on known breeds
-            buffalo_breeds = ["Jaffrabadi", "Mehsana", "Murrah", "Nili_Ravi", "Surti"]
-            cow_breeds = [breed for breed in self.classes if breed not in buffalo_breeds]
-            return {"cow": cow_breeds, "buffalo": buffalo_breeds}
-        
-        with open(categories_path, "r") as f:
+    def _load_classes(self):
+        with open(CLASSES_PATH, "r") as f:
             return json.load(f)
 
-    def _load_model(self, model_path: str):
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found: {model_path}")
+    def _load_model(self):
+        def persistent_load_fn(saved_id):
+            storage_type = saved_id[1]
+            storage_key = saved_id[2]
+            storage_data_path = f"{self.model_dir}/data/{storage_key}"
 
-        try:
-            # Try loading as TorchScript first
-            model = torch.jit.load(model_path, map_location=self.device)
-            model.eval()
-            return model
-        except Exception:
-            # Load state dict and create EfficientNet V2-S model
+            if not os.path.exists(storage_data_path):
+                return None
+
             try:
-                state_dict = torch.load(model_path, map_location=self.device)
-                model = self._build_efficientnet_v2_s(len(self.classes))
-                
-                # Load state dict
-                missing, unexpected = model.load_state_dict(state_dict, strict=False)
-                if missing or unexpected:
-                    print(f"[ModelService] State dict loaded with missing: {len(missing)}, unexpected: {len(unexpected)}")
-                
-                model.eval()
-                return model
-            except Exception as e:
-                raise RuntimeError(f"Failed to load model: {e}")
+                with open(storage_data_path, "rb") as f:
+                    data = np.frombuffer(f.read(), dtype=np.float32)
+                storage = torch.from_numpy(data).storage()
+                return storage
+            except:
+                return None
 
-    def _build_efficientnet_v2_s(self, num_classes: int) -> torch.nn.Module:
-        """Build EfficientNet V2-S model with custom classifier"""
-        try:
-            # Try to use EfficientNet V2-S if available
-            backbone = tvm.efficientnet_v2_s(weights=None)
-            feature_dim = backbone.classifier[1].in_features
-            backbone.classifier = nn.Identity()
-        except AttributeError:
-            # Fallback to regular EfficientNet B0 if V2 not available
-            print("[ModelService] EfficientNet V2-S not available, using EfficientNet B0")
-            backbone = tvm.efficientnet_b0(weights=None)
-            if isinstance(backbone.classifier, nn.Sequential):
-                feature_dim = backbone.classifier[-1].in_features
-                backbone.classifier = nn.Identity()
-            else:
-                feature_dim = 1280  # Default for EfficientNet
+        class CustomUnpickler(pickle.Unpickler):
+            def persistent_load(self, saved_id):
+                return persistent_load_fn(saved_id)
 
-        # Custom classifier to match the saved model structure
-        classifier = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(feature_dim, num_classes)
+        print("Loading model state...")
+        with open(f"{self.model_dir}/data.pkl", "rb") as f:
+            unpickler = CustomUnpickler(io.BytesIO(f.read()))
+            state_dict = unpickler.load()
+
+        print("Creating model...")
+        model = HybridCattleClassifier(num_classes=41)
+
+        print("Loading weights...")
+        model.load_state_dict(state_dict, strict=False)
+
+        model = model.to(self.device)
+        model.eval()
+        print(f"Model loaded on: {self.device}")
+        return model
+
+    def _get_transforms(self):
+        return transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
         )
 
-        class EfficientNetModel(nn.Module):
-            def __init__(self, backbone, classifier):
-                super().__init__()
-                self.backbone = backbone
-                self.classifier = classifier
+    def predict(self, image_path):
+        img = Image.open(image_path).convert("RGB")
+        img_tensor = self.transform(img).unsqueeze(0).to(self.device)
 
-            def forward(self, x):
-                features = self.backbone(x)
-                if features.ndim > 2:
-                    features = torch.flatten(features, 1)
-                return self.classifier(features)
-
-        return EfficientNetModel(backbone, classifier)
-
-    def _classify_species(self, breed: str) -> str:
-        """Classify breed into cow, buffalo, or unknown"""
-        if breed == "unknown":
-            return "unknown"
-        
-        if breed in self.cattle_categories["cow"]:
-            return "cow"
-        elif breed in self.cattle_categories["buffalo"]:
-            return "buffalo"
-        else:
-            return "unknown"
-
-    def predict(self, image: Image.Image) -> Tuple[str, float, List[Dict[str, float]], float]:
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-
-        t0 = time.perf_counter()
         with torch.no_grad():
-            variants = max(1, min(self.tta, len(self._tta_fns)))
-            prob_accum = None
-            
-            for i in range(variants):
-                pil = self._tta_fns[i](image)
-                tensor = self.transform(pil).unsqueeze(0).to(self.device)
-                logits = self.model(tensor)
-                
-                if self.temperature and self.temperature > 0:
-                    logits = logits / self.temperature
-                    
-                probs_step = F.softmax(logits, dim=1)
-                prob_accum = probs_step if prob_accum is None else prob_accum + probs_step
-            
-            probs = (prob_accum / float(variants)).squeeze(0).detach().cpu()
-            topk = min(5, probs.shape[0])
-            confs, idxs = torch.topk(probs, k=topk)
+            outputs = self.model(img_tensor)
+            probabilities = torch.softmax(outputs, dim=1)
 
-        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            probs = probabilities[0].cpu().numpy()
+            top_indices = np.argsort(probs)[-5:][::-1]
+            top_probs = probs[top_indices]
 
-        # Build predictions
+        breed_name = self.classes[str(top_indices[0])]
+        species = "buffalo" if breed_name in BUFFALO_BREEDS else "cow"
+
         top_predictions = []
-        for i in range(topk):
-            label_idx = int(idxs[i].item())
-            conf = float(confs[i].item())
-            label = self.classes[label_idx] if 0 <= label_idx < len(self.classes) else str(label_idx)
-            top_predictions.append({"breed": label, "confidence": conf})
+        for idx, prob in zip(top_indices, top_probs):
+            top_predictions.append(
+                {"breed": self.classes[str(idx)], "confidence": float(prob)}
+            )
 
-        top_breed = top_predictions[0]["breed"]
-        top_conf = top_predictions[0]["confidence"]
-        
-        # Check if top prediction is cow or buffalo
-        species = self._classify_species(top_breed)
-        
-        # Apply confidence thresholds first
-        second = top_predictions[1]["confidence"] if len(top_predictions) > 1 else 0.0
-        margin = float(top_conf - second)
-        
-        # If confidence is too low, return unknown
-        if (self.reject_threshold > 0 and top_conf < self.reject_threshold) or \
-           (self.margin_threshold > 0 and margin < self.margin_threshold):
-            return "unknown", float(top_conf), top_predictions, float(elapsed_ms)
-        
-        # If not cow or buffalo (i.e., some other animal), return unknown
-        if species == "unknown":
-            return "unknown", float(top_conf), top_predictions, float(elapsed_ms)
-        
-        # Return the actual breed name, not the species
-        return top_breed, top_conf, top_predictions, elapsed_ms
+        return {
+            "breed": breed_name,
+            "confidence": float(top_probs[0]),
+            "species": species,
+            "top_predictions": top_predictions,
+        }
+
+    def predict_bytes(self, image_bytes):
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        img_tensor = self.transform(img).unsqueeze(0).to(self.device)
+
+        with torch.no_grad():
+            outputs = self.model(img_tensor)
+            probabilities = torch.softmax(outputs, dim=1)
+
+            probs = probabilities[0].cpu().numpy()
+            top_indices = np.argsort(probs)[-5:][::-1]
+            top_probs = probs[top_indices]
+
+        breed_name = self.classes[str(top_indices[0])]
+        species = "buffalo" if breed_name in BUFFALO_BREEDS else "cow"
+
+        top_predictions = []
+        for idx, prob in zip(top_indices, top_probs):
+            top_predictions.append(
+                {"breed": self.classes[str(idx)], "confidence": float(prob)}
+            )
+
+        return {
+            "breed": breed_name,
+            "confidence": float(top_probs[0]),
+            "species": species,
+            "top_predictions": top_predictions,
+        }

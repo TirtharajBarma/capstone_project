@@ -1,6 +1,7 @@
 import axios from 'axios';
 import FormData from 'form-data';
 import { fileTypeFromBuffer } from 'file-type';
+import mongoose from 'mongoose';
 import { Prediction, Breed, User } from '../models/index.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
@@ -12,7 +13,13 @@ export const predictBreed = asyncHandler(async (req, res) => {
   const userAgent = req.get('User-Agent');
   const ipAddress = req.ip || req.connection.remoteAddress;
   const clerkIdHeader = (req.get('X-Clerk-Id') || '').trim();
-  const saveToDb = req.query.saveToDb !== 'false'; // Default true, false if explicitly set
+  let saveToDb = req.query.saveToDb !== 'false'; // Default true, false if explicitly set
+    
+    // Override saveToDb if MongoDB is not connected
+    if (saveToDb && mongoose.connection.readyState !== 1) {
+      console.log('⚠️  MongoDB not connected, skipping save...');
+      saveToDb = false;
+    }
   
   try {
     // Validate file type via magic numbers
@@ -27,35 +34,177 @@ export const predictBreed = asyncHandler(async (req, res) => {
 
     // Create FormData to send to ML model
     const formData = new FormData();
-    formData.append('image', buffer, {
+    formData.append('file', buffer, {
       filename: originalname,
       contentType: mimetype
     });
 
-    // Sending image to ML model API...
-    
-    // Send request to ML model API
-    const modelResponse = await axios.post(process.env.MODEL_API_URL, formData, {
-      headers: {
-        ...formData.getHeaders(),
-        'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`
-      },
-      timeout: parseInt(process.env.MODEL_API_TIMEOUT) || 30000,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity
-    });
+    // DEBUG LOG
+    console.log(`🔍 Request received. PREDICTION_MODE is: "${process.env.PREDICTION_MODE}"`);
 
-    const { breed, confidence, inference_time_ms, species, top_predictions } = modelResponse.data;
+    let breed, confidence, inference_time_ms, species, top_predictions;
 
-    // ML Model Response received
+    // CHECK FOR AI BYPASS
+    if (process.env.PREDICTION_MODE === 'AI') {
+      const startTime = Date.now();
+      console.log('🔮 Using AI Bypass Mode (OpenRouter)...');
+
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error('OPENROUTER_API_KEY is missing in backend environment');
+      }
+
+      const base64Image = buffer.toString('base64');
+      const dataUri = `data:${mimetype};base64,${base64Image}`;
+
+      const aiModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
+
+      const aiResponse = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: aiModel,
+          max_tokens: 2000,
+          // response_format: { type: "json_object" }, // Unsupported by many vision models
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Analyze this image carefully. First, determine if it contains cattle (cow or buffalo).
+
+                  IMPORTANT: If the image does NOT contain cattle (e.g., it's a person, object, computer screen, landscape, etc.), return:
+                  {
+                    "breed": "N/A",
+                    "confidence": 0,
+                    "species": "unknown",
+                    "breed_info": {
+                      "origin": null,
+                      "description": "No cattle detected in image",
+                      "traits": [],
+                      "characteristics": {
+                        "size": null,
+                        "color": [],
+                        "horns": null
+                      }
+                    },
+                    "top_predictions": []
+                  }
+
+                  If the image DOES contain cattle, identify the breed and provide detailed information.
+
+                  Return ONLY a valid JSON object (no markdown formatting) with this EXACT structure:
+                  {
+                    "breed": "string",
+                    "confidence": number (0-1),
+                    "species": "string",
+                    "breed_info": {
+                      "origin": "string (country/region of origin)",
+                      "description": "string (2-3 sentences about the breed)",
+                      "traits": ["string array of key traits/characteristics"],
+                      "characteristics": {
+                        "size": "string (small/medium/large)",
+                        "color": ["string array of colors"],
+                        "horns": "string (horn description or 'Polled' if no horns)"
+                      }
+                    },
+                    "top_predictions": [{
+                      "breed": "string",
+                      "confidence": number,
+                      "breed_info": { /* same structure as above */ }
+                    }]
+                  }
+
+                  The species must be either 'cow' or 'buffalo'. If unsure or no cattle present, set to 'unknown'.
+                  Only provide breed information if you're confident the image contains actual cattle.`
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: dataUri
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://cattle-breed-recognition.com', // Optional but recommended for OpenRouter
+            'X-Title': 'Cattle Breed Recognition'
+          }
+        }
+      );
+
+      const aiContent = aiResponse.data.choices[0].message.content;
+      console.log('🤖 AI Raw Response:', JSON.stringify(aiResponse.data, null, 2));
+
+      if (!aiContent) {
+        throw new Error('AI returned empty content. Check server logs for details.');
+      }
+
+      // Clean markdown if present (e.g. ```json ... ```)
+      const jsonStr = aiContent.replace(/```json\n?|\n?```/g, '').trim();
+      
+      let aiBreedInfo = null;
+      let aiTopPredictionsWithInfo = null;
+      
+      try {
+        const parsed = JSON.parse(jsonStr);
+        breed = parsed.breed;
+        confidence = parsed.confidence;
+        species = parsed.species;
+        top_predictions = parsed.top_predictions;
+        inference_time_ms = Date.now() - startTime;
+        
+        // Store AI-provided breed info for later use
+        aiBreedInfo = parsed.breed_info || null;
+        aiTopPredictionsWithInfo = parsed.top_predictions || null;
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        throw new Error('AI returned invalid JSON');
+      }
+      
+      // Store in a variable to use later instead of database lookup
+      req.aiBreedInfo = aiBreedInfo;
+      req.aiTopPredictionsWithInfo = aiTopPredictionsWithInfo;
+
+    } else {
+      // STANDARD ML MODEL PATH
+      console.log('⚙️ Using Standard ML Model path...');
+      
+      // Send request to ML model API
+      const modelResponse = await axios.post(process.env.MODEL_API_URL, formData, {
+        headers: {
+          ...formData.getHeaders(),
+          'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`
+        },
+        timeout: parseInt(process.env.MODEL_API_TIMEOUT) || 30000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      });
+
+      // Destructure from model response
+      ({ breed, confidence, inference_time_ms, species, top_predictions } = modelResponse.data);
+    }
+
+
+    // ML Model/AI Response received
 
     if (!breed || confidence === undefined) {
-      throw new Error('Invalid response from ML model');
+      throw new Error('Invalid response from prediction service');
     }
 
     // Validate confidence score
     if (confidence < 0 || confidence > 1) {
-      throw new Error('Invalid confidence score from ML model');
+      // Some models might return percentage 0-100, normalize if needed or throw
+      // Assuming 0-1 for now based on previous code
+      if (confidence > 1 && confidence <= 100) {
+        confidence = confidence / 100;
+      } else if (confidence > 100) {
+         throw new Error('Invalid confidence score from prediction service');
+      }
     }
 
     // Map ML model species output to database format
@@ -125,12 +274,23 @@ export const predictBreed = asyncHandler(async (req, res) => {
     }
 
     // Batch fetch breed metadata for primary and top predictions to avoid N+1 queries
+    // BUT: If AI mode provided breed_info, use that instead of database lookup
     const top3 = (top_predictions || [{ breed, confidence }]).slice(0, 3);
     const namesToFetch = Array.from(new Set([breed, ...top3.map((tp) => tp.breed)]));
+    
     let docs = [];
+    let useAIBreedInfo = false;
+    
+    // Check if we have AI-provided breed info (from AI mode)
+    if (req.aiBreedInfo && req.aiTopPredictionsWithInfo) {
+      useAIBreedInfo = true;
+      console.log('✨ Using AI-provided breed information');
+    }
+    
+    // Always fetch from database to get Location data (which AI doesn't provide)
     try {
       docs = await Breed.find({
-        species: mappedSpecies === 'unknown' ? 'cattle' : mappedSpecies, // Default to cattle for unknown
+        species: mappedSpecies === 'unknown' ? 'cattle' : mappedSpecies,
         $or: namesToFetch.map((n) => ({ name: new RegExp(`^${n}$`, 'i') }))
       }).select('name species origin description traits characteristics location');
     } catch (e) {
@@ -141,7 +301,29 @@ export const predictBreed = asyncHandler(async (req, res) => {
       docs.map((d) => [String(d.name).toLowerCase(), d])
     );
 
-    const toMeta = (name, sp) => {
+    const toMeta = (name, sp, aiInfo = null) => {
+      // If AI provided breed info, use it
+      if (aiInfo) {
+        // Try to find in DB to backfill location if missing (hybrid approach)
+        const key = String(name).toLowerCase();
+        const doc = docMap.get(key);
+
+        return {
+          name,
+          species: sp || mappedSpecies || 'cattle',
+          origin: aiInfo.origin || null,
+          description: aiInfo.description || null,
+          traits: Array.isArray(aiInfo.traits) ? aiInfo.traits : [],
+          characteristics: {
+            size: aiInfo.characteristics?.size || null,
+            color: Array.isArray(aiInfo.characteristics?.color) ? aiInfo.characteristics.color : [],
+            horns: aiInfo.characteristics?.horns || null
+          },
+          location: doc ? doc.location : null // Use DB location if available
+        };
+      }
+      
+      // Otherwise, use database lookup
       const key = String(name).toLowerCase();
       const doc = docMap.get(key);
       if (!doc) {
@@ -164,19 +346,28 @@ export const predictBreed = asyncHandler(async (req, res) => {
         characteristics: {
           size: doc.characteristics?.size || null,
           color: Array.isArray(doc.characteristics?.color) ? doc.characteristics.color : [],
-          color: Array.isArray(doc.characteristics?.color) ? doc.characteristics.color : [],
           horns: doc.characteristics?.horns || null
         },
         location: doc.location || null
       };
     };
 
-    const primaryBreedInfo = toMeta(breed, species);
-    const enrichedTop = top3.map((tp) => ({
-      breed: tp.breed,
-      confidence: tp.confidence,
-      breedInfo: toMeta(tp.breed, species)
-    }));
+    // Build breed info - use AI-provided info if available
+    const primaryBreedInfo = toMeta(breed, species, useAIBreedInfo ? req.aiBreedInfo : null);
+    
+    const enrichedTop = top3.map((tp, index) => {
+      // Find matching AI breed info if available
+      let aiInfo = null;
+      if (useAIBreedInfo && req.aiTopPredictionsWithInfo && req.aiTopPredictionsWithInfo[index]) {
+        aiInfo = req.aiTopPredictionsWithInfo[index].breed_info || null;
+      }
+      
+      return {
+        breed: tp.breed,
+        confidence: tp.confidence,
+        breedInfo: toMeta(tp.breed, species, aiInfo)
+      };
+    });
 
     // Prepare response
     const response = {
@@ -207,8 +398,8 @@ export const predictBreed = asyncHandler(async (req, res) => {
     if (error.code === 'ECONNREFUSED') {
       return res.status(503).json({
         success: false,
-        message: 'ML model service is currently unavailable. Please try again later.',
-        error: 'MODEL_SERVICE_UNAVAILABLE'
+        message: 'Prediction service is currently unavailable. Please try again later.',
+        error: 'SERVICE_UNAVAILABLE'
       });
     }
 
@@ -221,10 +412,13 @@ export const predictBreed = asyncHandler(async (req, res) => {
     }
 
     if (error.response) {
+        // Log more details from OpenRouter/Model error
+         console.error('Upstream API Data:', error.response.data);
+         
       return res.status(error.response.status || 500).json({
         success: false,
-        message: error.response.data?.message || error.response.data?.detail || 'Error from ML model service',
-        error: 'MODEL_API_ERROR'
+        message: error.response.data?.message || error.response.data?.error?.message || 'Error from prediction service',
+        error: 'UPSTREAM_API_ERROR'
       });
     }
 
@@ -348,29 +542,33 @@ export const savePrediction = asyncHandler(async (req, res) => {
       });
     }
 
-    // Create and save prediction
-    const prediction = new Prediction({
-      ...predictionData,
-      userId: user._id
-    });
+    // Try to save prediction (skip if DB unavailable)
+    let savedPrediction = null;
+    try {
+      const prediction = new Prediction({
+        ...predictionData,
+        userId: user._id
+      });
+      savedPrediction = await prediction.save();
 
-    const savedPrediction = await prediction.save();
-
-    // Increment user stats
-    await User.findByIdAndUpdate(user._id, {
-      $inc: { 'stats.totalPredictions': 1 },
-      $set: { 'stats.lastActive': new Date() }
-    });
+      // Increment user stats
+      await User.findByIdAndUpdate(user._id, {
+        $inc: { 'stats.totalPredictions': 1 },
+        $set: { 'stats.lastActive': new Date() }
+      });
+    } catch (dbError) {
+      console.log('⚠️  Could not save to DB, returning prediction only');
+    }
 
     res.status(201).json({
       success: true,
       data: {
-        predictionId: savedPrediction._id,
-        breed: savedPrediction.predictedBreed,
-        confidence: savedPrediction.confidence,
-        timestamp: savedPrediction.createdAt
+        predictionId: savedPrediction?._id || null,
+        breed: predictionData.predictedBreed,
+        confidence: predictionData.confidence,
+        timestamp: savedPrediction?.createdAt || new Date().toISOString()
       },
-      message: 'Prediction saved successfully'
+      message: savedPrediction ? 'Prediction saved successfully' : 'Prediction returned (DB unavailable)'
     });
   } catch (error) {
     console.error('Save prediction error:', error);
