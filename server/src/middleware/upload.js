@@ -1,10 +1,13 @@
 import multer from 'multer';
 import path from 'path';
+import { fileTypeFromBuffer } from 'file-type';
 
 // Configure storage
 const storage = multer.memoryStorage(); // Store in memory for forwarding to ML API
 
 // File filter function
+// Note: This relies on mimetype which can be spoofed.
+// We keep it for early rejection but MUST validate with magic numbers later.
 const fileFilter = (req, file, cb) => {
   // Get allowed file types from environment
   const allowedTypes = process.env.ALLOWED_FILE_TYPES?.split(',') || [
@@ -73,7 +76,7 @@ const handleUploadError = (error, req, res, next) => {
 };
 
 // Middleware to validate image upload
-const validateImageUpload = (req, res, next) => {
+const validateImageUpload = async (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -82,15 +85,38 @@ const validateImageUpload = (req, res, next) => {
     });
   }
   
-  // Add file metadata to request
-  req.fileMetadata = {
-    originalName: req.file.originalname,
-    mimetype: req.file.mimetype,
-    size: req.file.size,
-    buffer: req.file.buffer
-  };
-  
-  next();
+  try {
+    // Validate file type using Magic Numbers (inspecting buffer)
+    const type = await fileTypeFromBuffer(req.file.buffer);
+
+    // Allowed types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+
+    if (!type || !allowedTypes.includes(type.mime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file content. The file is not a valid image.',
+        error: 'INVALID_FILE_CONTENT'
+      });
+    }
+
+    // Add file metadata to request (using the verified mime type)
+    req.fileMetadata = {
+      originalName: req.file.originalname,
+      mimetype: type.mime, // Use verified mime type
+      size: req.file.size,
+      buffer: req.file.buffer
+    };
+
+    next();
+  } catch (error) {
+    console.error('File validation error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error validating file.',
+      error: 'VALIDATION_ERROR'
+    });
+  }
 };
 
 // Export upload middleware configurations
