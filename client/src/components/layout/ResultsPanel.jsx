@@ -174,7 +174,7 @@ const ResultsPanel = ({
             </div>
 
             {(breedInfo?.characteristics || breedInfo?.traits) && (
-              <div className="relative z-10 grid grid-cols-2 gap-4 mt-2">
+              <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                 {breedInfo?.characteristics && (
                   <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                     <span className="flex items-center gap-2 text-[14px] font-bold text-slate-900 tracking-tight">
@@ -203,11 +203,10 @@ const ResultsPanel = ({
                     </ul>
                   </div>
                 )}
-                
                 {breedInfo?.traits && breedInfo.traits.length > 0 && (
                   <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden">
                     <span className="flex items-center gap-2 text-[14px] font-bold text-slate-900 tracking-tight">
-                      <span className="material-symbols-outlined text-[18px] text-indigo-500">psychology</span>
+                      <span className="material-symbols-outlined text-[18px] text-amber-500">psychology</span>
                       Key Details
                     </span>
                     <div className="flex flex-wrap gap-2">

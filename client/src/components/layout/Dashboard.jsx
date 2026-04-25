@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CameraCapture from '../ui/CameraCapture';
 
 const Dashboard = ({ onImageUpload, isLoading, error }) => {
   const [dragOver, setDragOver] = useState(false);
+  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef(null);
@@ -207,20 +209,28 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
           </div>
         )}
 
-        {/* Loading State */}
+        {/* Beautiful Loading State */}
         {currentState === 'loading' && (
           <div className="w-full animate-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-3xl border border-primary/10 bg-bg-card p-12 text-center">
-              <div className="relative w-20 h-20 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-full border-4 border-primary/10"></div>
-                <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+            <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-stone-100 p-10 text-center shadow-lg flex flex-col items-center gap-8">
+              <div className="relative w-24 h-24 flex items-center justify-center mx-auto mb-2">
+                <div className="absolute inset-0 rounded-full border-4 border-amber-100"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin" style={{ animationDuration: '1.2s' }}></div>
+                <div className="absolute inset-3 rounded-full bg-gradient-to-br from-amber-100/60 to-white/80 animate-pulse" />
+                <span className="material-symbols-outlined text-4xl text-amber-400 z-10">auto_awesome</span>
               </div>
-              
-              <h3 className="text-xl font-semibold text-primary mb-2">Analyzing Image...</h3>
-              <p className="text-primary/50 mb-6">Our AI is identifying the breed</p>
-              
-              <div className="w-full max-w-xs mx-auto h-2 bg-primary/10 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }}></div>
+              <h3 className="text-2xl font-bold text-stone-800 mb-1 tracking-tight">Analyzing Image...</h3>
+              <p className="text-stone-500 mb-4">Our AI is identifying the breed. This usually takes a few seconds.</p>
+              <div className="w-full max-w-xs mx-auto flex flex-col gap-2">
+                <div className="h-3 w-full bg-amber-100 rounded-full overflow-hidden relative">
+                  <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-amber-300/60 via-amber-400/80 to-amber-200/0 animate-[shimmer_2s_infinite]" style={{ left: 0 }} />
+                  <div className="h-full bg-amber-400 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                </div>
+                <div className="flex justify-between text-xs text-stone-400 font-medium mt-1">
+                  <span>Uploading</span>
+                  <span>Analyzing</span>
+                  <span>Result</span>
+                </div>
               </div>
             </div>
           </div>
@@ -235,12 +245,12 @@ const Dashboard = ({ onImageUpload, isLoading, error }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              
-              <h3 className="text-lg font-semibold text-red-600 mb-2">Upload Failed</h3>
+              <h3 className="text-lg font-semibold text-red-600 mb-2">Recognition Failed</h3>
               <p className="text-red-500/70 mb-6">{error || "Something went wrong. Please try again."}</p>
-              
               <button 
-                onClick={() => setSelectedImage(null)}
+                onClick={() => {
+                  navigate('/');
+                }}
                 className="px-6 py-3 rounded-full bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
               >
                 Try Again

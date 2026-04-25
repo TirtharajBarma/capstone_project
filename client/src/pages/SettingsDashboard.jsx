@@ -30,9 +30,9 @@ const SettingsDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 p-4 lg:p-8">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-          <header className="flex flex-col gap-5 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] lg:flex-row lg:items-end lg:justify-between lg:p-8">
+      <div className="flex-1 p-2 sm:p-4 lg:p-8">
+        <div className="mx-auto flex w-full max-w-full sm:max-w-3xl lg:max-w-6xl flex-col gap-6 sm:gap-8">
+          <header className="flex flex-col gap-5 rounded-2xl sm:rounded-[2rem] border border-slate-100 bg-white p-3 sm:p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] lg:flex-row lg:items-end lg:justify-between lg:p-8">
             <div className="flex flex-col gap-2">
               <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-slate-400">Workspace settings</p>
               <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
@@ -55,9 +55,9 @@ const SettingsDashboard = () => {
             </div>
           </header>
 
-          <div className="grid gap-8 lg:grid-cols-[320px,1fr]">
+          <div className="grid gap-4 sm:gap-8 lg:grid-cols-[320px,1fr]">
             {/* Left Sidebar Nav */}
-            <nav className="flex flex-row gap-3 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0 shrink-0">
+            <nav className="flex flex-row gap-2 sm:gap-3 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0 shrink-0 w-full min-w-0">
               {[
                 { id: 'profile', icon: 'person', label: 'My Profile', desc: 'Personal details' },
                 { id: 'notifications', icon: 'notifications', label: 'Notifications', desc: 'Email preferences' },
@@ -66,7 +66,7 @@ const SettingsDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`group flex min-w-[220px] items-start gap-4 rounded-2xl border p-4 text-left transition-all duration-200 lg:min-w-0 ${
+                  className={`group flex min-w-[160px] sm:min-w-[200px] items-start gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border p-3 sm:p-4 text-left transition-all duration-200 lg:min-w-0 ${
                     activeTab === tab.id 
                       ? 'border-indigo-100 bg-indigo-50/80 shadow-[0_10px_30px_-20px_rgba(79,70,229,0.35)]' 
                       : 'border-slate-100 bg-white hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-sm'
@@ -90,12 +90,12 @@ const SettingsDashboard = () => {
             </nav>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] min-h-[680px]">
+            <div className="flex-1 overflow-hidden rounded-xl sm:rounded-[2rem] border border-slate-100 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] min-h-[480px] sm:min-h-[680px] w-full">
               
               {/* Profile Tab */}
               {activeTab === 'profile' && (
-                <div className="h-full bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-6 lg:p-8">
-                  <div className="mb-6 rounded-3xl border border-slate-100 bg-slate-50/80 p-5">
+                <div className="h-full bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-2 sm:p-6 lg:p-8">
+                  <div className="mb-4 sm:mb-6 rounded-2xl sm:rounded-3xl border border-slate-100 bg-slate-50/80 p-3 sm:p-5">
                     <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-slate-400">Profile manager</p>
                     <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-900">Personal details and security</h2>
                     <p className="mt-1 max-w-2xl text-sm font-medium text-slate-500">
@@ -103,15 +103,15 @@ const SettingsDashboard = () => {
                     </p>
                   </div>
 
-                  <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)]">
+                  <div className="overflow-hidden rounded-xl sm:rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)] w-full">
                     <UserProfile 
                       appearance={{
                         elements: {
-                          rootBox: "w-full mx-auto shadow-none",
-                          card: "shadow-none border-0 rounded-none",
+                          rootBox: "w-full mx-auto shadow-none p-0",
+                          card: "shadow-none border-0 rounded-none p-0 w-full",
                           navbar: "hidden",
                           pageScrollBox: "p-0",
-                          cardBox: "w-full",
+                          cardBox: "w-full p-0",
                         }
                       }}
                     />

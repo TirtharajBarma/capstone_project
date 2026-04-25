@@ -4,6 +4,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import mongoose from 'mongoose';
 import { Prediction, Breed, User } from '../models/index.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // @desc    Make prediction using ML model
 // @route   POST /api/predict
@@ -47,100 +48,91 @@ export const predictBreed = asyncHandler(async (req, res) => {
     // CHECK FOR AI BYPASS
     if (process.env.PREDICTION_MODE === 'AI') {
       const startTime = Date.now();
-      console.log('🔮 Using AI Bypass Mode (OpenRouter)...');
+      const modelName = process.env.GOOGLE_MODEL || 'gemini-2.5-flash';
+      console.log(`🔮 Using AI Bypass Mode (Google Gemini Direct: ${modelName})...`);
 
-      if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error('OPENROUTER_API_KEY is missing in backend environment');
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new Error('GOOGLE_API_KEY is missing in backend environment');
       }
 
-      const base64Image = buffer.toString('base64');
-      const dataUri = `data:${mimetype};base64,${base64Image}`;
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+      const model = genAI.getGenerativeModel({ model: modelName });
 
-      const aiModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
+      const allowedBreeds = [
+        "Alambadi", "Amritmahal", "Ayrshire", "Banni", "Bargur", "Bhadawari", 
+        "Brown Swiss", "Dangi", "Deoni", "Gir", "Guernsey", "Hallikar", 
+        "Hariana", "Holstein Friesian", "Jaffrabadi", "Jersey", "Kangayam", 
+        "Kankrej", "Kasargod", "Kenkatha", "Kherigarh", "Khillari", 
+        "Krishna Valley", "Malnad gidda", "Mehsana", "Murrah", "Nagori", 
+        "Nagpuri", "Nili Ravi", "Nimari", "Ongole", "Pulikulam", "Rathi", 
+        "Red Dane", "Red Sindhi", "Sahiwal", "Surti", "Tharparkar", 
+        "Toda", "Umblachery", "Vechur"
+      ];
 
-      const aiResponse = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        {
-          model: aiModel,
-          temperature: 0,
-          top_p: 1,
-          max_tokens: 2000,
-          // response_format: { type: "json_object" }, // Unsupported by many vision models
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `Analyze this image carefully. First, determine if it contains cattle (cow or buffalo).
+      const prompt = `Analyze this image carefully. You are a specialized cattle breed recognition expert.
+      
+      STRICT CONSTRAINT: You can ONLY identify breeds from this specific list:
+      [${allowedBreeds.join(", ")}]
 
-                  IMPORTANT: If the image does NOT contain cattle (e.g., it's a person, object, computer screen, landscape, etc.), return:
-                  {
-                    "breed": "N/A",
-                    "confidence": 0,
-                    "species": "unknown",
-                    "breed_info": {
-                      "origin": null,
-                      "description": "No cattle detected in image",
-                      "traits": [],
-                      "characteristics": {
-                        "size": null,
-                        "color": [],
-                        "horns": null
-                      }
-                    },
-                    "top_predictions": []
-                  }
-
-                  If the image DOES contain cattle, identify the breed and provide detailed information.
-
-                  Return ONLY a valid JSON object (no markdown formatting) with this EXACT structure:
-                  {
-                    "breed": "string",
-                    "confidence": number (0-1),
-                    "species": "string",
-                    "breed_info": {
-                      "origin": "string (country/region of origin)",
-                      "description": "string (2-3 sentences about the breed)",
-                      "traits": ["string array of key traits/characteristics"],
-                      "characteristics": {
-                        "size": "string (small/medium/large)",
-                        "color": ["string array of colors"],
-                        "horns": "string (horn description or 'Polled' if no horns)"
-                      }
-                    },
-                    "top_predictions": [{
-                      "breed": "string",
-                      "confidence": number,
-                      "breed_info": { /* same structure as above */ }
-                    }]
-                  }
-
-                  The species must be either 'cow' or 'buffalo'. If unsure or no cattle present, set to 'unknown'.
-                  Only provide breed information if you're confident the image contains actual cattle.`
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: dataUri
-                  }
-                }
-              ]
-            }
-          ]
+      IMPORTANT RULES:
+      1. If the image does NOT contain cattle (cow or buffalo), OR if the breed is not in the list above, return:
+      {
+        "breed": "N/A",
+        "confidence": 0,
+        "species": "unknown",
+        "breed_info": {
+          "origin": null,
+          "description": "Cattle not detected or breed not supported",
+          "traits": [],
+          "characteristics": { "size": null, "color": [], "horns": null }
         },
+        "top_predictions": []
+      }
+
+      2. If the image DOES contain one of the supported breeds, identify it and provide details.
+      3. Return ONLY a valid JSON object.
+
+      Structure:
+      {
+        "breed": "string (MUST be from the allowed list)",
+        "confidence": number (0-1),
+        "species": "cow" or "buffalo",
+        "breed_info": {
+          "origin": "string",
+          "description": "string",
+          "traits": ["string"],
+          "characteristics": {
+            "size": "string",
+            "color": ["string"],
+            "horns": "string"
+          }
+        },
+        "top_predictions": [{
+          "breed": "string (MUST be from the allowed list)",
+          "confidence": number,
+          "breed_info": { /* same structure */ }
+        }]
+      }`;
+
+      console.log(`📤 Sending request to Gemini (${(buffer.length / 1024).toFixed(2)} KB)...`);
+      const apiStartTime = Date.now();
+      
+      const result = await model.generateContent([
+        prompt,
         {
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://cattle-breed-recognition.com', // Optional but recommended for OpenRouter
-            'X-Title': 'Cattle Breed Recognition'
+          inlineData: {
+            data: buffer.toString('base64'),
+            mimeType: mimetype
           }
         }
-      );
+      ]);
 
-      const aiContent = aiResponse.data.choices[0].message.content;
-      console.log('🤖 AI Raw Response:', JSON.stringify(aiResponse.data, null, 2));
+      const aiResponse = await result.response;
+      const apiDuration = Date.now() - apiStartTime;
+      console.log(`✅ AI Response received in ${apiDuration}ms`);
+      
+      const aiContent = aiResponse.text();
+      console.log('🤖 AI Raw Content length:', aiContent.length);
 
       if (!aiContent) {
         throw new Error('AI returned empty content. Check server logs for details.');
@@ -165,6 +157,7 @@ export const predictBreed = asyncHandler(async (req, res) => {
         aiTopPredictionsWithInfo = parsed.top_predictions || null;
       } catch (parseError) {
         console.error('Failed to parse AI response:', parseError);
+        console.log('Raw content was:', aiContent);
         throw new Error('AI returned invalid JSON');
       }
       
