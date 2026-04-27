@@ -11,6 +11,7 @@ const API_ENDPOINTS = {
   PREDICT_BY_ID: (id) => `/predictions/${id}`,
   PREDICT_DELETE: (id) => `/predictions/${id}`,
   PREDICT_FAVORITE: (id) => `/predict/${id}/favorite`,
+  HISTORY_FAVORITES: '/history/favorites',
 
   // Upload endpoints
   UPLOAD_IMAGE: '/upload',

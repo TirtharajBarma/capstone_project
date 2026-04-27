@@ -3,7 +3,8 @@ import {
   getPredictionHistory,
   getPredictionStats,
   getRecentPredictions,
-  deletePrediction
+  deletePrediction,
+  getFavorites
 } from '../controllers/historyController.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -28,5 +29,10 @@ router.delete('/:id', requireAuth, deletePrediction);
 // @desc    Get prediction history with filtering and pagination
 // @access  Protected
 router.get('/', requireAuth, getPredictionHistory);
+
+// @route   GET /api/history/favorites
+// @desc    Get all favorite predictions
+// @access  Protected
+router.get('/favorites', requireAuth, getFavorites);
 
 export default router;

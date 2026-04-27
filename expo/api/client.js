@@ -148,6 +148,11 @@ export const predictionAPI = {
     return response.data;
   },
 
+  getFavorites: async (clerkId) => {
+    const response = await api.get(API_ENDPOINTS.HISTORY_FAVORITES);
+    return response.data;
+  },
+
   uploadImage: async (formData) => {
     console.log('🔌 [API] Uploading image to Cloudinary...');
     

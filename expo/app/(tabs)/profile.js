@@ -17,15 +17,25 @@ import { useUserContext } from '../../context/UserContext';
 import { userAPI } from '../../api/client';
 
 // Custom Components defined inline to ensure exact styling match
-const StatCard = ({ title, value, backgroundColor, fullWidth }) => (
-  <View style={[
-    styles.statCard, 
-    { backgroundColor },
-    fullWidth && styles.statCardFullWidth
-  ]}>
-    <Text style={styles.statTitle}>{title}</Text>
-    <Text style={styles.statValue}>{value}</Text>
-  </View>
+const StatCard = ({ title, value, backgroundColor, fullWidth, onPress }) => (
+  <TouchableOpacity 
+    style={[
+      styles.statCard, 
+      { backgroundColor },
+      fullWidth && styles.statCardFullWidth
+    ]}
+    onPress={onPress}
+    activeOpacity={onPress ? 0.8 : 1}
+    disabled={!onPress}
+  >
+    <View style={styles.statCardContent}>
+      <Text style={styles.statTitle}>{title}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+    </View>
+    {onPress && (
+      <MaterialCommunityIcons name="chevron-right" size={20} color="#374151" />
+    )}
+  </TouchableOpacity>
 );
 
 const MenuItem = ({ icon, title, onPress }) => (
@@ -146,12 +156,13 @@ export default function ProfileScreen() {
               backgroundColor="#B2C7D9" // Light Blue
             />
           </View>
-          <StatCard
-            title="Favorites Saved"
-            value={stats.favoritesSaved}
-            backgroundColor="#D1E4D5" // Light Green
-            fullWidth
-          />
+<StatCard
+              title="Favorites Saved"
+              value={stats.favoritesSaved}
+              backgroundColor="#D1E4D5"
+              fullWidth
+              onPress={() => router.push('/favorites')}
+            />
         </View>
 
         {/* Menu Sections */}
@@ -252,7 +263,12 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     minHeight: 120,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  statCardContent: {
+    flex: 1,
   },
   statCardFullWidth: {
     width: '100%',

@@ -265,6 +265,8 @@ export default function ResultsScreen() {
       router.push('/(tabs)');
     } else if (source === 'scan') {
       router.push('/(tabs)/scan');
+    } else if (source === 'favorites') {
+      router.push('/favorites');
     } else {
       // Fallback to previous screen if no source specified
       router.back();

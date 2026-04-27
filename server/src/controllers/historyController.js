@@ -433,3 +433,42 @@ function getTimeAgo(date) {
   if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   return 'Just now';
 }
+
+// @desc    Get all favorite predictions
+// @route   GET /api/history/favorites
+// @access  Protected
+export const getFavorites = asyncHandler(async (req, res) => {
+  if (!req.auth?.userId) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized'
+    });
+  }
+
+  const user = await getUserFromClerkId(req.auth.userId);
+  if (!user) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        predictions: [],
+        total: 0
+      }
+    });
+  }
+
+  const predictions = await Prediction.find({
+    userId: user._id,
+    isFavorite: true
+  })
+    .sort({ createdAt: -1 })
+    .select('-imageMetadata.buffer -userAgent -ipAddress -__v')
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    data: {
+      predictions,
+      total: predictions.length
+    }
+  });
+});
