@@ -11,7 +11,7 @@ const Input = React.forwardRef(({
   variant = 'default',
   ...props 
 }, ref) => {
-  const baseStyles = 'w-full rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseStyles = 'w-full rounded-xl transition-colors transition-transform transition-shadow duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2';
   
   const variants = {
     default: 'bg-white/80 border border-neutral-300 text-neutral-900 placeholder-neutral-500 focus:border-primary-500 focus:ring-primary-500/20',
@@ -25,22 +25,26 @@ const Input = React.forwardRef(({
     lg: 'px-5 py-4 text-lg',
   };
 
+  const inputId = React.useId();
+  
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-medium text-neutral-700">
+        <label htmlFor={inputId} className="block text-sm font-medium text-neutral-700">
           {label}
         </label>
       )}
       <div className="relative">
         {icon && iconPosition === 'left' && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500" aria-hidden="true">
             {icon}
           </div>
         )}
         <input
           ref={ref}
+          id={inputId}
           type={type}
+          autoComplete={props.autocomplete}
           className={cn(
             baseStyles,
             variants[variant],
@@ -53,7 +57,7 @@ const Input = React.forwardRef(({
           {...props}
         />
         {icon && iconPosition === 'right' && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500">
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500" aria-hidden="true">
             {icon}
           </div>
         )}

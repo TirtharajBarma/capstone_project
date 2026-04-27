@@ -104,7 +104,22 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={[styles.actionCard, styles.uploadCard]}
             activeOpacity={0.8}
-            onPress={() => router.push('/scan')}
+            onPress={async () => {
+              // Open gallery directly from home
+              const ImagePicker = await import('expo-image-picker');
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.8,
+                allowsEditing: true,
+                aspect: [3, 4],
+              });
+              if (!result.canceled && result.assets && result.assets[0]?.uri) {
+                router.push({
+                  pathname: '/scan',
+                  params: { imageUri: result.assets[0].uri, source: 'upload' },
+                });
+              }
+            }}
           >
             <View style={[styles.iconCircle, styles.uploadIconCircle]}>
               <MaterialCommunityIcons name="image-plus" size={32} color="#5e3a75" />

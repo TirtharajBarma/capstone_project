@@ -8,7 +8,7 @@ const Card = React.forwardRef(({
   padding = 'default',
   ...props 
 }, ref) => {
-  const baseStyles = 'rounded-2xl transition-all duration-300';
+  const baseStyles = 'rounded-2xl transition-colors transition-transform transition-shadow duration-300';
   
   const variants = {
     default: 'neumorph-card',

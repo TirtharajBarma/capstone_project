@@ -80,12 +80,14 @@ server/coverage/
 
 # ======================================
 # Database / Temp Files
-# ======================================
 data/
 tmp/
 *.sqlite
 *.db
 *.bak
+
+# Exception: PyTorch model data (required for inference)
+!model/cow_breed_model/data/
 
 # ======================================
 # Optional - Ignore local config files
@@ -111,10 +113,10 @@ __pycache__/
 env/
 venv/
 
-# Model files
-*.pth
-*.pt
-*.onnx
+# Model files - uncomment to ignore
+# *.pth
+# *.pt
+# *.onnx
 
 # Environment variables
 .env

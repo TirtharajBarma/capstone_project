@@ -229,9 +229,6 @@ export default function ScanScreen() {
                   color="#FFF"
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.inFrameButton} onPress={toggleCameraFacing}>
-                <MaterialCommunityIcons name="camera-flip" size={20} color="#FFF" />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -248,7 +245,6 @@ export default function ScanScreen() {
       {/* Bottom Controls */}
       <View style={styles.bottomControls}>
         <View style={styles.pullIndicator} />
-        
         <View style={styles.controlsRow}>
           {/* Library Button */}
           <TouchableOpacity style={styles.controlButton} onPress={pickImage}>
@@ -267,12 +263,12 @@ export default function ScanScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Recent Button */}
-          <TouchableOpacity style={styles.controlButton} onPress={() => router.push('/history')}>
+          {/* Reverse Camera Button */}
+          <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
             <View style={styles.iconButton}>
-              <MaterialCommunityIcons name="history" size={24} color="#A6C1EE" />
+              <MaterialCommunityIcons name="camera-flip" size={24} color="#A6C1EE" />
             </View>
-            <Text style={styles.controlLabel}>Recent</Text>
+            <Text style={styles.controlLabel}>Reverse</Text>
           </TouchableOpacity>
         </View>
       </View>

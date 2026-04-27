@@ -1,15 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Figtree:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #1A535C;
-  --color-secondary: #F58A07;
-  --color-accent: #F9AB55;
+  --color-primary: #BC4B29;
+  --color-secondary: #5B8C5A;
+  --color-accent: #F4A261;
+  --color-accent-warm: #E9C46A;
   
-  --color-bg-primary: #F5EADF;
+  --color-bg-primary: #FAF6F1;
   --color-bg-card: #FFFFFF;
-  --color-bg-card-subtle: #FDFBF9;
+  --color-bg-card-subtle: #F5F0E8;
+  --color-bg-warm: #2C2416;
 
-  --font-display: "Inter", system-ui, -apple-system, sans-serif;
+  --color-text-primary: #2C2416;
+  --color-text-secondary: #5C5346;
+  --color-text-muted: #8A8279;
+
+  --font-display: "DM Serif Display", Georgia, serif;
+  --font-body: "Figtree", system-ui, sans-serif;
 
   --radius: 0.25rem;
   --radius-lg: 0.5rem;
@@ -18,8 +26,8 @@
   --radius-3xl: 1.5rem;
   --radius-full: 9999px;
   
-  /* Custom easing */
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @layer base {
@@ -28,9 +36,9 @@
   }
   
   body {
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     background-color: var(--color-bg-primary);
-    color: var(--color-primary);
+    color: var(--color-text-primary);
     font-weight: 400;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -38,9 +46,10 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -56,38 +65,46 @@
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 shadow-lg;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-sm;
     background-color: var(--color-primary);
     color: white;
   }
   .btn-primary:hover {
     @apply opacity-90 -translate-y-0.5;
-    box-shadow: 0 4px 12px rgba(26, 83, 92, 0.3);
+    box-shadow: 0 8px 20px -4px rgba(188, 75, 41, 0.35);
   }
   .btn-primary:active {
     @apply translate-y-0 scale-[0.98];
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium border transition-all duration-200;
-    border-color: rgba(26, 83, 92, 0.15);
-    color: var(--color-primary);
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium border-2 transition-all duration-200;
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
   }
   .btn-secondary:hover {
-    @apply bg-primary/5;
+    background-color: var(--color-secondary);
+    color: white;
   }
 
   /* Cards */
   .card {
-    @apply rounded-2xl p-6 bg-bg-card border border-primary/5 shadow-sm transition-all duration-200;
+    @apply rounded-3xl p-6 bg-bg-card border transition-all duration-300;
+    border-color: rgba(44, 36, 22, 0.06);
+    box-shadow: 0 1px 2px 0 rgba(44, 36, 22, 0.02), 0 4px 12px -2px rgba(44, 36, 22, 0.04);
   }
   .card-hover {
-    @apply hover:border-primary/15 hover:shadow-md;
+    @apply hover:border-primary/10 hover:shadow-lg;
   }
 
   /* Input */
   .input {
-    @apply w-full px-4 py-3 rounded-xl bg-bg-card-subtle border border-primary/10 text-primary placeholder:text-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/20 transition-all;
+    @apply w-full px-4 py-3 rounded-xl bg-bg-card-subtle border text-text-primary placeholder:text-text-muted focus:outline-none transition-all;
+    border-color: rgba(44, 36, 22, 0.08);
+  }
+  .input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(188, 75, 41, 0.1);
   }
 
   /* Badge */
@@ -95,7 +112,8 @@
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
   }
   .badge-primary {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary;
+    background-color: rgba(188, 75, 41, 0.1);
+    color: var(--color-primary);
   }
 }
 
@@ -108,7 +126,7 @@
 @keyframes slideInFromBottom {
   from { 
     opacity: 0; 
-    transform: translateY(10px); 
+    transform: translateY(16px); 
   }
   to { 
     opacity: 1; 
@@ -119,7 +137,7 @@
 @keyframes slideInFromTop {
   from { 
     opacity: 0; 
-    transform: translateY(-10px); 
+    transform: translateY(-16px); 
   }
   to { 
     opacity: 1; 
@@ -130,7 +148,7 @@
 @keyframes scaleIn {
   from { 
     opacity: 0; 
-    transform: scale(0.95); 
+    transform: scale(0.94); 
   }
   to { 
     opacity: 1; 
@@ -138,8 +156,26 @@
   }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
 .animate-in {
-  animation-duration: 300ms;
+  animation-duration: 500ms;
   animation-timing-function: var(--ease-out);
   animation-fill-mode: forwards;
 }
@@ -156,6 +192,21 @@
   animation-name: scaleIn;
 }
 
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Subtle noise texture overlay */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  z-index: 9999;
+}
+
 /* Skeleton Animation */
 @keyframes shimmer {
   0% {
@@ -170,9 +221,9 @@
   animation: shimmer 2s ease-in-out infinite;
   background: linear-gradient(
     90deg,
-    rgba(26, 83, 92, 0.05) 25%,
-    rgba(26, 83, 92, 0.1) 50%,
-    rgba(26, 83, 92, 0.05) 75%
+    rgba(44, 36, 22, 0.04) 25%,
+    rgba(44, 36, 22, 0.08) 50%,
+    rgba(44, 36, 22, 0.04) 75%
   );
   background-size: 200% 100%;
 }
@@ -200,10 +251,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(26, 83, 92, 0.15);
+  background: rgba(44, 36, 22, 0.15);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(26, 83, 92, 0.25);
+  background: rgba(44, 36, 22, 0.25);
 }
