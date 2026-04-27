@@ -8,9 +8,11 @@ import {
   Image,
   Dimensions,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useUserContext } from '../../context/UserContext';
 import { predictionAPI } from '../../api/client';
 
@@ -53,6 +55,34 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
+  const openCamera = () => {
+    router.push({
+      pathname: '/scan',
+      params: { source: 'camera' },
+    });
+  };
+
+  const openGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.85,
+        allowsEditing: true,
+        aspect: [3, 4],
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        router.push({
+          pathname: '/scan',
+          params: { imageUri: result.assets[0].uri, source: 'upload' },
+        });
+      }
+    } catch (error) {
+      console.warn('Error opening gallery:', error);
+      Alert.alert('Gallery unavailable', 'Could not open your gallery. Please try again.');
+    }
+  };
+
   const firstName = clerkUser?.firstName || 'User';
 
   return (
@@ -87,7 +117,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={[styles.actionCard, styles.cameraCard]}
             activeOpacity={0.8}
-            onPress={() => router.push('/scan')}
+            onPress={openCamera}
           >
             <View style={[styles.iconCircle, styles.cameraIconCircle]}>
               <MaterialCommunityIcons name="camera" size={32} color="#2d7a58" />
@@ -104,22 +134,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={[styles.actionCard, styles.uploadCard]}
             activeOpacity={0.8}
-            onPress={async () => {
-              // Open gallery directly from home
-              const ImagePicker = await import('expo-image-picker');
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                quality: 0.8,
-                allowsEditing: true,
-                aspect: [3, 4],
-              });
-              if (!result.canceled && result.assets && result.assets[0]?.uri) {
-                router.push({
-                  pathname: '/scan',
-                  params: { imageUri: result.assets[0].uri, source: 'upload' },
-                });
-              }
-            }}
+            onPress={openGallery}
           >
             <View style={[styles.iconCircle, styles.uploadIconCircle]}>
               <MaterialCommunityIcons name="image-plus" size={32} color="#5e3a75" />
@@ -258,7 +273,7 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 34,
     paddingBottom: 24,
   },
   welcomeText: {
@@ -286,28 +301,36 @@ const styles = StyleSheet.create({
   },
   actionGrid: {
     flexDirection: 'row',
-    gap: 16,
     paddingHorizontal: 24,
     paddingVertical: 16,
+    justifyContent: 'space-between',
   },
   actionCard: {
-    flex: 1,
-    aspectRatio: 4 / 5,
-    borderRadius: 16,
-    padding: 24,
+    width: (width - 64) / 2,
+    minHeight: 176,
+    borderRadius: 8,
+    padding: 18,
     justifyContent: 'space-between',
     overflow: 'hidden',
+    borderWidth: 1,
+    shadowColor: '#102016',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
   },
   cameraCard: {
-    backgroundColor: '#B2F7EF',
+    backgroundColor: '#D9F4E7',
+    borderColor: '#B7E5CF',
   },
   uploadCard: {
-    backgroundColor: '#E0BBE4',
+    backgroundColor: '#EEE2F2',
+    borderColor: '#D7C0DF',
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 54,
+    height: 54,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -321,8 +344,9 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: 'bold',
+    letterSpacing: 0,
   },
   cameraTitleColor: {
     color: '#133324',
@@ -331,9 +355,10 @@ const styles = StyleSheet.create({
     color: '#2e1a3b',
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     marginTop: 4,
+    lineHeight: 18,
   },
   cameraSubtitleColor: {
     color: '#2d7a58',

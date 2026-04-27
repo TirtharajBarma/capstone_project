@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { predictionAPI } from '../../api/client';
@@ -21,6 +22,8 @@ const { width, height } = Dimensions.get('window');
 
 export default function ScanScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState('back');
@@ -28,46 +31,38 @@ export default function ScanScreen() {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [selectedSource, setSelectedSource] = useState(params.source === 'upload' ? 'upload' : 'camera');
 
-  // Only activate camera when screen is focused
+  useEffect(() => {
+    if (params.imageUri) {
+      setCapturedImage(params.imageUri);
+      setSelectedSource(params.source === 'upload' ? 'upload' : 'camera');
+    }
+  }, [params.imageUri, params.source]);
+
+  // Only activate camera when screen is focused (and only if no pre-loaded image)
   useFocusEffect(
     React.useCallback(() => {
-      // Screen is focused - activate camera
-      setIsCameraActive(true);
+      if (!params.imageUri && !capturedImage) {
+        setIsCameraActive(true);
+      }
       
       return () => {
-        // Screen is blurred - deactivate camera
         setIsCameraActive(false);
-        // Clear captured image when leaving screen
-        setCapturedImage(null);
       };
-    }, [])
+    }, [params.imageUri, capturedImage])
   );
-
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.permissionContainer}>
-        <MaterialCommunityIcons name="camera-off" size={64} color="#9CA3AF" />
-        <Text style={styles.permissionText}>Camera permission required</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   const takePicture = async () => {
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 1,
+        quality: 0.9,
         skipProcessing: false,
         exif: false,
       });
       setCapturedImage(photo.uri);
+      setSelectedSource('camera');
+      setIsCameraActive(false);
     }
   };
 
@@ -81,11 +76,18 @@ export default function ScanScreen() {
 
     if (!result.canceled) {
       setCapturedImage(result.assets[0].uri);
+      setSelectedSource('upload');
+      setIsCameraActive(false);
     }
   };
 
   const retake = () => {
+    if (selectedSource === 'upload') {
+      pickImage();
+      return;
+    }
     setCapturedImage(null);
+    setIsCameraActive(true);
   };
 
   const analyzeImage = async () => {
@@ -182,9 +184,107 @@ export default function ScanScreen() {
     );
   };
 
+  const header = (
+    <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, Platform.OS === 'ios' ? 60 : 40) }]}>
+      <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+        <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>{capturedImage ? 'Review Image' : 'Scan Cattle'}</Text>
+      <TouchableOpacity style={styles.headerButton} onPress={showHelp}>
+        <MaterialCommunityIcons name="help-circle-outline" size={24} color="#FFF" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (capturedImage) {
+    return (
+      <View style={styles.previewContainer}>
+        {header}
+
+        <View style={[styles.previewStage, { paddingTop: Math.max(insets.top + 92, 116) }]}>
+          <Image source={{ uri: capturedImage }} style={styles.previewImage} />
+        </View>
+
+        <View style={[styles.previewPanel, { paddingBottom: Math.max(insets.bottom + 100, 122) }]}>
+          <View style={styles.previewHandle} />
+          <View style={styles.previewCopy}>
+            <View style={styles.previewIcon}>
+              <MaterialCommunityIcons name="check" size={18} color="#0F6B45" />
+            </View>
+            <View style={styles.previewTextBlock}>
+              <Text style={styles.previewTitle}>
+                {selectedSource === 'upload' ? 'Image selected' : 'Photo captured'}
+              </Text>
+              <Text style={styles.previewSubtitle}>
+                Review the frame, then analyze the breed prediction.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.confirmationActions}>
+            <TouchableOpacity
+              style={styles.retakeButton}
+              onPress={retake}
+              disabled={isAnalyzing}
+            >
+              <MaterialCommunityIcons
+                name={selectedSource === 'upload' ? 'image-search-outline' : 'camera-retake-outline'}
+                size={18}
+                color="#395145"
+              />
+              <Text style={styles.retakeButtonText}>
+                {selectedSource === 'upload' ? 'Choose again' : 'Retake'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonDisabled]}
+              onPress={analyzeImage}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFF" />
+                  <Text style={styles.analyzeButtonText}>Analyzing</Text>
+                </>
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="sparkles" size={18} color="#FFF" />
+                  <Text style={styles.analyzeButtonText}>Analyze</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (!permission) {
+    return <View style={styles.container} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.permissionContainer}>
+        <MaterialCommunityIcons name="camera-off" size={64} color="#9CA3AF" />
+        <Text style={styles.permissionText}>Camera permission required</Text>
+        <Text style={styles.permissionSubtext}>
+          Enable camera access to take a new scan, or choose a photo from your library.
+        </Text>
+        <View style={styles.permissionActions}>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.permissionSecondaryButton} onPress={pickImage}>
+            <Text style={styles.permissionSecondaryButtonText}>Open Gallery</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Only render camera when screen is focused and permission is granted */}
       {isCameraActive && (
         <CameraView
           ref={cameraRef}
@@ -192,69 +292,52 @@ export default function ScanScreen() {
           facing={facing}
           flash={flash}
         >
-          {/* Top Navigation */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Scan Cattle</Text>
-            <TouchableOpacity style={styles.headerButton} onPress={showHelp}>
-              <MaterialCommunityIcons name="help-circle-outline" size={24} color="#FFF" />
-            </TouchableOpacity>
-          </View>
+          {header}
 
-        {/* Camera Frame Overlay */}
-        <View style={styles.frameContainer}>
-          <View style={styles.frame}>
-            {/* Corner Brackets */}
-            <View style={[styles.corner, styles.cornerTopLeft]} />
-            <View style={[styles.corner, styles.cornerTopRight]} />
-            <View style={[styles.corner, styles.cornerBottomLeft]} />
-            <View style={[styles.corner, styles.cornerBottomRight]} />
+          <View style={styles.frameContainer}>
+            <View style={styles.frame}>
+              <View style={[styles.corner, styles.cornerTopLeft]} />
+              <View style={[styles.corner, styles.cornerTopRight]} />
+              <View style={[styles.corner, styles.cornerBottomLeft]} />
+              <View style={[styles.corner, styles.cornerBottomRight]} />
 
-            {/* Grid Lines */}
-            <View style={styles.gridContainer}>
-              <View style={[styles.gridVertical, { left: '33.33%' }]} />
-              <View style={[styles.gridVertical, { left: '66.66%' }]} />
-              <View style={[styles.gridHorizontal, { top: '33.33%' }]} />
-              <View style={[styles.gridHorizontal, { top: '66.66%' }]} />
+              <View style={styles.gridContainer}>
+                <View style={[styles.gridVertical, { left: '33.33%' }]} />
+                <View style={[styles.gridVertical, { left: '66.66%' }]} />
+                <View style={[styles.gridHorizontal, { top: '33.33%' }]} />
+                <View style={[styles.gridHorizontal, { top: '66.66%' }]} />
+              </View>
+
+              <View style={styles.inFrameControls}>
+                <TouchableOpacity style={styles.inFrameButton} onPress={toggleFlash}>
+                  <MaterialCommunityIcons
+                    name={flash === 'off' ? 'flash-off' : 'flash'}
+                    size={20}
+                    color="#FFF"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* In-Frame Controls */}
-            <View style={styles.inFrameControls}>
-              <TouchableOpacity style={styles.inFrameButton} onPress={toggleFlash}>
-                <MaterialCommunityIcons
-                  name={flash === 'off' ? 'flash-off' : 'flash'}
-                  size={20}
-                  color="#FFF"
-                />
-              </TouchableOpacity>
+            <View style={styles.instructionContainer}>
+              <Text style={styles.instructionText}>
+                Align the animal's head within the frame
+              </Text>
             </View>
           </View>
-
-          {/* Instruction Text */}
-          <View style={styles.instructionContainer}>
-            <Text style={styles.instructionText}>
-              Align the animal's head within the frame
-            </Text>
-          </View>
-        </View>
         </CameraView>
       )}
 
-      {/* Bottom Controls */}
-      <View style={styles.bottomControls}>
+      <View style={[styles.bottomControls, { paddingBottom: Math.max(insets.bottom + 92, 112) }]}>
         <View style={styles.pullIndicator} />
         <View style={styles.controlsRow}>
-          {/* Library Button */}
           <TouchableOpacity style={styles.controlButton} onPress={pickImage}>
             <View style={styles.iconButton}>
-              <MaterialCommunityIcons name="image-multiple" size={24} color="#A6C1EE" />
+              <MaterialCommunityIcons name="image-multiple" size={24} color="#2F6B4F" />
             </View>
             <Text style={styles.controlLabel}>Library</Text>
           </TouchableOpacity>
 
-          {/* Shutter Button */}
           <TouchableOpacity style={styles.shutterContainer} onPress={takePicture}>
             <View style={styles.shutterOuter}>
               <View style={styles.shutterInner}>
@@ -263,57 +346,14 @@ export default function ScanScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Reverse Camera Button */}
           <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
             <View style={styles.iconButton}>
-              <MaterialCommunityIcons name="camera-flip" size={24} color="#A6C1EE" />
+              <MaterialCommunityIcons name="camera-flip" size={24} color="#2F6B4F" />
             </View>
             <Text style={styles.controlLabel}>Reverse</Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Captured Image Confirmation Card */}
-      {capturedImage && (
-        <View style={styles.confirmationCard}>
-          <TouchableOpacity style={styles.closeButton} onPress={retake}>
-            <MaterialCommunityIcons name="close" size={16} color="#6B7280" />
-          </TouchableOpacity>
-
-          <Image source={{ uri: capturedImage }} style={styles.previewImage} />
-
-          <View style={styles.confirmationContent}>
-            <View style={styles.confirmationHeader}>
-              <Text style={styles.confirmationTitle}>Image Captured</Text>
-              <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
-            </View>
-
-            <View style={styles.confirmationActions}>
-              <TouchableOpacity 
-                style={styles.retakeButton} 
-                onPress={retake}
-                disabled={isAnalyzing}
-              >
-                <Text style={styles.retakeButtonText}>Retake</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonDisabled]} 
-                onPress={analyzeImage}
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <ActivityIndicator size="small" color="#FFF" />
-                    <Text style={styles.analyzeButtonText}>Analyzing...</Text>
-                  </>
-                ) : (
-                  <Text style={styles.analyzeButtonText}>Analyze</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -321,6 +361,7 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#050705',
   },
   camera: {
     flex: 1,
@@ -336,17 +377,44 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#1F2937',
     marginTop: 16,
-    marginBottom: 24,
+    marginBottom: 8,
     fontWeight: '600',
   },
+  permissionSubtext: {
+    maxWidth: 300,
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
+    marginBottom: 24,
+  },
+  permissionActions: {
+    width: '100%',
+    gap: 10,
+  },
   permissionButton: {
-    backgroundColor: '#664ce6',
+    backgroundColor: '#216B4B',
     paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   permissionButtonText: {
     color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  permissionSecondaryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDE5DE',
+  },
+  permissionSecondaryButtonText: {
+    color: '#216B4B',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -354,7 +422,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingHorizontal: 16,
     paddingBottom: 12,
     position: 'absolute',
@@ -362,7 +429,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.48)',
   },
   headerButton: {
     width: 40,
@@ -378,7 +445,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#FFF',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
   frameContainer: {
     flex: 1,
@@ -480,10 +547,9 @@ const styles = StyleSheet.create({
   },
   bottomControls: {
     backgroundColor: '#FAF8F6',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     paddingTop: 16,
-    paddingBottom: 120,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
@@ -501,9 +567,10 @@ const styles = StyleSheet.create({
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 32,
-    paddingHorizontal: 32,
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 320,
+    paddingHorizontal: 20,
   },
   controlButton: {
     alignItems: 'center',
@@ -512,11 +579,11 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 52,
     height: 52,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#664ce6',
+    shadowColor: '#102016',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
@@ -539,7 +606,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     borderWidth: 3,
-    borderColor: '#E8E4FF',
+    borderColor: '#D8EFE2',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFF',
@@ -548,108 +615,114 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#664ce6',
+    backgroundColor: '#216B4B',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#664ce6',
+    shadowColor: '#216B4B',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 6,
   },
-  recentButton: {
-    padding: 0,
-    overflow: 'hidden',
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#07100B',
   },
-  recentImage: {
-    width: '100%',
-    height: '100%',
-    opacity: 0.6,
-  },
-  confirmationCard: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 140 : 120,
-    left: 16,
-    right: 16,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 12,
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  previewStage: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingBottom: 212,
   },
   previewImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: '#111827',
+    resizeMode: 'cover',
   },
-  confirmationContent: {
-    flex: 1,
-    gap: 8,
+  previewPanel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FAF8F6',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 14,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  confirmationHeader: {
+  previewHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D8D1',
+    marginBottom: 18,
+  },
+  previewCopy: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
+    marginBottom: 18,
   },
-  confirmationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+  previewIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DDF4E7',
+  },
+  previewTextBlock: {
+    flex: 1,
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#17261C',
+  },
+  previewSubtitle: {
+    marginTop: 3,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#69766E',
   },
   confirmationActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   retakeButton: {
     flex: 1,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: '#EFF3EF',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#DDE5DE',
   },
   retakeButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#395145',
   },
   analyzeButton: {
     flex: 1,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#664ce6',
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: '#216B4B',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
-    shadowColor: '#664ce6',
+    shadowColor: '#216B4B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -659,7 +732,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   analyzeButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFF',
   },
